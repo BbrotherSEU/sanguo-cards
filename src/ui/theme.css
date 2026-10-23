@@ -3429,5 +3429,380 @@ body {
   z-index: 3;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   武将卡 · 纸面精修（名字牌 / 品阶角标 / 等级签 / 阵营签）
+   ═══════════════════════════════════════════════════════════════ */
+
+/* 卡体：阵营底色回纸面，阵营识别只留在立绘辉光与信息条色条 */
+.hero-card.faction-shu,
+.hero-card.faction-wei,
+.hero-card.faction-wu,
+.hero-card.faction-qun {
+  background: linear-gradient(180deg, var(--paper-2), var(--paper-1) 56%, var(--paper-3));
+}
+
+/* 名字牌：墨字 + 阴刻细线 */
+.hero-card .meta .name {
+  font-size: 0.9rem;
+  letter-spacing: 0.1em;
+  padding-bottom: 3px;
+  border-bottom: 1px solid rgba(125, 88, 34, 0.26);
+}
+
+/* 等级签：纸质小牌 */
+.card-lv {
+  left: 5px;
+  bottom: 5px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--brass-2);
+  background: linear-gradient(180deg, var(--paper-2), var(--paper-3));
+  color: var(--ink-1);
+  box-shadow: 0 0 0 1px rgba(67, 43, 15, 0.55), 0 2px 5px rgba(0, 0, 0, 0.45);
+}
+
+/* 品阶角标：纸签，SSR 走金漆 */
+.rarity-tag {
+  border: 1px solid var(--brass-3);
+  background: linear-gradient(180deg, var(--paper-2), var(--paper-3));
+  color: var(--ink-1);
+  box-shadow: 0 0 0 1px rgba(67, 43, 15, 0.45), 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+.rarity-tag i {
+  color: var(--ink-2);
+  opacity: 1;
+}
+
+.rarity-tag.rarity-R,
+.rarity-tag.rarity-N {
+  color: #6b5a44;
+  border-color: rgba(125, 88, 34, 0.55);
+}
+
+.rarity-tag.rarity-SR {
+  color: #5b3a86;
+  border-color: rgba(107, 73, 150, 0.55);
+}
+
+.rarity-tag.rarity-SSR {
+  background: linear-gradient(180deg, #fff4d2, #e8c56a 58%, #c9903f);
+  color: #5a3200;
+  border-color: #7d5822;
+  box-shadow: 0 0 0 1px #432b0f, 0 2px 8px rgba(120, 80, 20, 0.5);
+}
+
+/* 阵营小签：纸底 + 阵营字色 */
+.faction-chip {
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(251, 244, 229, 0.96), rgba(223, 201, 161, 0.96));
+  border: 1px solid rgba(230, 201, 136, 0.85);
+  color: var(--ink-1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+.faction-chip.faction-shu { color: #1b5e20; }
+.faction-chip.faction-wei { color: #0d47a1; }
+.faction-chip.faction-wu { color: #8e1c1c; }
+.faction-chip.faction-qun { color: #4a148c; }
+
+/* 上阵标记：朱漆小印 */
+.team-pin {
+  background: linear-gradient(180deg, var(--red-1), var(--red-3));
+  color: #ffeccb;
+  border: 1px solid rgba(230, 201, 136, 0.65);
+}
+
+/* 选人网格副标题回墨色（原金色压在纸上偏淡） */
+.pick-grid .hero-card .sub {
+  color: var(--ink-2);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   招募 · 抽卡界面（卷轴纸面 / 漆器按钮 / 结果卡）
+   ═══════════════════════════════════════════════════════════════ */
+
+/* 侧栏：宣纸底 + 右缘一道金线 */
+.recruit-side {
+  background:
+    repeating-linear-gradient(0deg, rgba(122, 84, 38, 0.05) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, rgba(251, 244, 229, 0.9), rgba(223, 201, 161, 0.6));
+  border-right: 1px solid rgba(125, 88, 34, 0.42);
+  box-shadow: inset -2px 0 0 rgba(230, 201, 136, 0.35), inset 0 0 18px rgba(150, 108, 45, 0.12);
+}
+
+/* 侧栏圆形抽卡钮：金漆印章 / 朱漆印章 */
+.side-pull {
+  border: 1px solid var(--brass-2);
+  background: radial-gradient(circle at 38% 30%, #fff4d2, #e8c56a 52%, #b9944e);
+  color: #5a3200;
+  box-shadow:
+    0 0 0 1px var(--brass-4),
+    0 0 0 3px rgba(230, 201, 136, 0.4),
+    0 4px 10px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.side-pull.ten {
+  background: radial-gradient(circle at 38% 30%, #e0573e, var(--red-2) 52%, var(--red-3));
+  color: #ffeccb;
+  border-color: rgba(230, 201, 136, 0.85);
+  box-shadow:
+    0 0 0 1px var(--brass-4),
+    0 0 0 3px rgba(230, 201, 136, 0.4),
+    0 4px 10px rgba(120, 27, 18, 0.5),
+    inset 0 1px 0 rgba(255, 236, 200, 0.45);
+}
+
+.side-pull:active {
+  transform: translateY(1px);
+}
+
+/* 卷轴轴杆 */
+.roll {
+  border-radius: 6px;
+  background: linear-gradient(180deg, #f6dfa4, #c9903f 38%, #7a4a1e 80%, #432b0f);
+  box-shadow:
+    0 0 0 1px #432b0f,
+    inset 0 1px 0 rgba(255, 240, 200, 0.7),
+    0 2px 5px rgba(0, 0, 0, 0.45);
+}
+
+/* 卷面：宣纸，阵营只保留一层淡色晕 */
+.faction-scroll .paper {
+  border: 1px solid var(--brass-3);
+  border-radius: 6px;
+  background:
+    repeating-linear-gradient(0deg, rgba(122, 84, 38, 0.05) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, var(--paper-2), var(--paper-1) 58%, var(--paper-3));
+  box-shadow:
+    inset 0 0 0 1px rgba(125, 88, 34, 0.26),
+    0 0 0 2px var(--brass-2),
+    0 0 0 3px var(--brass-4),
+    0 10px 22px rgba(0, 0, 0, 0.45);
+}
+
+.faction-scroll.wei .paper {
+  background:
+    radial-gradient(circle at 50% 26%, rgba(21, 101, 192, 0.2), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(122, 84, 38, 0.05) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, var(--paper-2), var(--paper-1) 58%, var(--paper-3));
+}
+
+.faction-scroll.shu .paper {
+  background:
+    radial-gradient(circle at 50% 26%, rgba(46, 125, 50, 0.2), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(122, 84, 38, 0.05) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, var(--paper-2), var(--paper-1) 58%, var(--paper-3));
+}
+
+.faction-scroll.wu .paper {
+  background:
+    radial-gradient(circle at 50% 26%, rgba(198, 40, 40, 0.2), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(122, 84, 38, 0.05) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, var(--paper-2), var(--paper-1) 58%, var(--paper-3));
+}
+
+.faction-scroll.qun .paper {
+  background:
+    radial-gradient(circle at 50% 26%, rgba(123, 31, 162, 0.18), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(122, 84, 38, 0.05) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, var(--paper-2), var(--paper-1) 58%, var(--paper-3));
+}
+
+.faction-scroll.on .paper {
+  box-shadow:
+    inset 0 0 0 1px rgba(125, 88, 34, 0.26),
+    0 0 0 2px var(--brass-1),
+    0 0 0 3px var(--brass-4),
+    0 0 20px rgba(230, 201, 136, 0.55),
+    0 12px 26px rgba(0, 0, 0, 0.5);
+}
+
+/* 阵营印章：鎏金圆环 */
+.faction-scroll .seal {
+  border: 2px solid #f8e7c0;
+  box-shadow:
+    0 0 0 1px var(--brass-4),
+    0 0 0 3px rgba(230, 201, 136, 0.55),
+    0 4px 10px rgba(40, 20, 8, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  text-shadow: 0 1px 2px rgba(40, 20, 8, 0.4);
+}
+
+/* 底部当前阵营印 */
+.bar-faction {
+  border: 2px solid #f8e7c0;
+  box-shadow:
+    0 0 0 1px var(--brass-4),
+    0 0 0 3px rgba(230, 201, 136, 0.4),
+    0 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* 大抽卡钮：单抽金漆 / 十连朱漆 */
+.pull-big {
+  border: 1px solid var(--brass-2);
+  background: linear-gradient(180deg, #fff4d2, #e8c56a 55%, #b9944e);
+  color: #5a3200;
+  box-shadow:
+    0 0 0 1px var(--brass-4),
+    0 3px 0 #7d5822,
+    0 10px 22px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.pull-big small {
+  color: inherit;
+}
+
+.pull-big:hover {
+  box-shadow:
+    0 0 0 1px var(--brass-4),
+    0 5px 0 #7d5822,
+    0 14px 28px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.pull-big:active {
+  box-shadow: 0 0 0 1px var(--brass-4), 0 1px 0 #7d5822;
+}
+
+.pull-big.ten {
+  background: linear-gradient(180deg, var(--red-1), var(--red-2) 56%, var(--red-3));
+  color: #ffeccb;
+  border-color: rgba(230, 201, 136, 0.85);
+  box-shadow:
+    0 0 0 1px var(--brass-4),
+    0 3px 0 #5a120a,
+    0 10px 22px rgba(120, 27, 18, 0.45),
+    inset 0 1px 0 rgba(255, 236, 200, 0.45);
+}
+
+.pull-big.ten:hover {
+  box-shadow:
+    0 0 0 1px var(--brass-4),
+    0 5px 0 #5a120a,
+    0 14px 28px rgba(120, 27, 18, 0.5),
+    inset 0 1px 0 rgba(255, 236, 200, 0.5);
+}
+
+.pull-big.ten:active {
+  box-shadow: 0 0 0 1px var(--brass-4), 0 1px 0 #5a120a;
+}
+
+/* 抽卡结果卡：纸面卡体 + 深漆立绘槽 */
+.result-card {
+  border-color: var(--brass-3);
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--paper-2), var(--paper-1) 56%, var(--paper-3));
+}
+
+.result-card.faction-shu,
+.result-card.faction-wei,
+.result-card.faction-wu,
+.result-card.faction-qun {
+  background: linear-gradient(180deg, var(--paper-2), var(--paper-1) 56%, var(--paper-3));
+}
+
+.result-card .result-art,
+.result-card.faction-shu .result-art,
+.result-card.faction-wei .result-art,
+.result-card.faction-wu .result-art,
+.result-card.faction-qun .result-art {
+  background:
+    radial-gradient(circle at 50% 40%, rgba(232, 197, 106, 0.22), transparent 62%),
+    linear-gradient(180deg, #241710, #120b08);
+}
+
+.result-card .meta,
+.result-card.faction-shu .meta,
+.result-card.faction-wei .meta,
+.result-card.faction-wu .meta,
+.result-card.faction-qun .meta {
+  background: linear-gradient(180deg, #f9f1df, #e9d8b6);
+  border-top: 1px solid var(--brass-2);
+}
+
+.result-card.faction-shu .meta { box-shadow: inset 4px 0 0 #2e7d32, inset 0 1px 0 rgba(255, 255, 255, 0.7); }
+.result-card.faction-wei .meta { box-shadow: inset 4px 0 0 #1565c0, inset 0 1px 0 rgba(255, 255, 255, 0.7); }
+.result-card.faction-wu .meta { box-shadow: inset 4px 0 0 #c62828, inset 0 1px 0 rgba(255, 255, 255, 0.7); }
+.result-card.faction-qun .meta { box-shadow: inset 4px 0 0 #7b1fa2, inset 0 1px 0 rgba(255, 255, 255, 0.7); }
+
+.result-card .name,
+.result-card.faction-shu .name,
+.result-card.faction-wei .name,
+.result-card.faction-wu .name,
+.result-card.faction-qun .name {
+  color: var(--ink-1);
+  text-shadow: none;
+}
+
+.result-card .sub,
+.result-card.faction-shu .sub,
+.result-card.faction-wei .sub,
+.result-card.faction-wu .sub,
+.result-card.faction-qun .sub {
+  color: var(--ink-2);
+}
+
+/* 结果抬头：描金分隔线 */
+.recruit-result .result-head {
+  padding: 2px 0 4px;
+  border-bottom: 1px solid rgba(125, 88, 34, 0.28);
+  margin-bottom: 6px;
+  letter-spacing: 0.06em;
+}
+
+/* 翻牌动画卡：正面改宣纸，金框保留稀有度 */
+.summon-card .summon-face {
+  border: 1px solid var(--brass-3);
+}
+
+.summon-card .face-frame {
+  background:
+    radial-gradient(ellipse 86% 46% at 50% 8%, #fffdf5, transparent 66%),
+    repeating-linear-gradient(0deg, rgba(122, 84, 38, 0.05) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, var(--paper-2), var(--paper-1) 58%, var(--paper-3));
+  box-shadow: inset 0 0 0 1px rgba(125, 88, 34, 0.28);
+}
+
+.summon-card .face-meta,
+.summon-card.faction-shu .face-meta,
+.summon-card.faction-wei .face-meta,
+.summon-card.faction-wu .face-meta,
+.summon-card.faction-qun .face-meta {
+  background: linear-gradient(180deg, #f9f1df, #e9d8b6);
+  border-top: 1px solid var(--brass-2);
+}
+
+.summon-card .face-name,
+.summon-card.faction-shu .face-name,
+.summon-card.faction-wei .face-name,
+.summon-card.faction-wu .face-name,
+.summon-card.faction-qun .face-name {
+  color: var(--ink-1);
+  text-shadow: none;
+}
+
+.summon-card .face-title,
+.summon-card.faction-shu .face-title,
+.summon-card.faction-wei .face-title,
+.summon-card.faction-wu .face-title,
+.summon-card.faction-qun .face-title {
+  color: var(--ink-2);
+}
+
+/* NEW / 碎片角标：朱漆小签 */
+.face-new,
+.face-shard {
+  background: linear-gradient(180deg, var(--red-1), var(--red-3));
+  color: #ffeccb;
+  border: 1px solid rgba(230, 201, 136, 0.6);
+}
+
+.mini-tag {
+  background: linear-gradient(180deg, #fff4d2, #e8c56a);
+  color: #5a3200;
+}
 
 
