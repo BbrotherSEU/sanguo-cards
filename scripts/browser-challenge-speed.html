@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>challenge.js browser speed test</title>
+  <style>
+    body { font-family: ui-monospace, Consolas, monospace; margin: 24px; background: #111; color: #eee; }
+    button { padding: 10px 16px; font-size: 14px; cursor: pointer; }
+    pre { white-space: pre-wrap; line-height: 1.45; }
+    #frameHost { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <h1>challenge.js browser latency (iframe / Navigation Timing)</h1>
+  <p>cache bust query · delay between requests · rounds configurable via ?rounds=&amp;delay=</p>
+  <button id="run">Run test</button>
+  <pre id="out">idle</pre>
+  <div id="frameHost"></div>
+  <script>
+    const URLS = {
+      preprod: "https://hbsg.dxp1.preprod.eu.dynp.cloud1.vv1865.com/hsbc/dxp/challenge.js",
+      awswaf: "https://hsbc.edge.sdk.awswaf.com/hsbc/dxp/challenge.js",
+    };
+
+    const params = new URLSearchParams(location.search);
+    const ROUNDS = Number(params.get("rounds") || 20);
+    const DELAY_MS = Number(params.get("delay") || 3000);
+
+    const out = document.getElementById("out");
+    const host = document.getElementById("frameHost");
+    const log = (line) => { out.textContent += line + "\n"; };
+
+    function sleep(ms) {
+      return new Promise((r) => setTimeout(r, ms));
+    }
+
+    function stats(samples) {
+      const ok = samples.filter((s) => s.ok);
+      const times = ok.map((s) => s.ms).sort((a, b) => a - b);
+      if (!times.length) return { count: samples.length, ok: 0, fail: samples.length };
+      const sum = times.reduce((a, b) => a + b, 0);
+      const mid = Math.floor(times.length / 2);
+      const p50 = times.length % 2 === 0 ? (times[mid - 1] + times[mid]) / 2 : times[mid];
+      const p95Idx = Math.min(times.length - 1, Math.ceil(times.length * 0.95) - 1);
+      return {
+        count: samples.length,
+        ok: ok.length,
+        fail: samples.length - ok.length,
+        min: times[0],
+        max: times[times.length - 1],
+        avg: sum / times.length,
+        p50,
+        p95: times[p95Idx],
+      };
+    }
+
+    // Load via iframe to avoid CORS; measure with PerformanceObserver / resource timing when possible.
+    function fetchOnce(label, baseUrl) {
+      return new Promise((resolve) => {
+        const url = new URL(baseUrl);
+        url.searchParams.set("_nocache", `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+        const href = url.toString();
+
+        const iframe = document.createElement("iframe");
+        iframe.setAttribute("sandbox", ""); // no scripts
+        const t0 = performance.now();
+        let done = false;
+
+        const finish = ( partial ) => {
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          try { iframe.remove(); } catch (_) {}
+          resolve(partial);
+        };
+
+        const timer = setTimeout(() => {
+          finish({
+            label, ok: false, status: 0, ms: performance.now() - t0,
+            transferSize: null, protocol: null, error: "timeout",
+          });
+        }, 30000);
+
+        iframe.onload = () => {
+          const wall = performance.now() - t0;
+          // Prefer resource timing for this URL if available
+          const entries = performance.getEntriesByName(href);
+          const last = entries[entries.length - 1];
+          let ms = wall;
+          let transferSize = null;
+          let protocol = null;
+          let decodedBodySize = null;
+          if (last) {
+            ms = last.duration || (last.responseEnd - last.startTime) || wall;
+            transferSize = last.transferSize;
+            decodedBodySize = last.decodedBodySize;
+            protocol = last.nextHopProtocol || null;
+          }
+          finish({
+            label,
+            ok: true,
+            status: 200,
+            ms,
+            wallMs: wall,
+            transferSize,
+            decodedBodySize,
+            protocol,
+            error: null,
+          });
+        };
+
+        iframe.onerror = () => {
+          finish({
+            label, ok: false, status: 0, ms: performance.now() - t0,
+            transferSize: null, protocol: null, error: "iframe error",
+          });
+        };
+
+        iframe.src = href;
+        host.appendChild(iframe);
+      });
+    }
+
+    async function run() {
+      out.textContent = "";
+      log(`Browser challenge.js latency`);
+      log(`rounds/url: ${ROUNDS}  delay: ${DELAY_MS} ms`);
+      log(`UA: ${navigator.userAgent}`);
+      log(`method: sandboxed iframe + Performance Resource Timing`);
+      log("");
+
+      const results = { preprod: [], awswaf: [] };
+      const names = Object.keys(URLS);
+      let step = 0;
+      const total = ROUNDS * names.length;
+
+      for (let round = 1; round <= ROUNDS; round++) {
+        for (const name of names) {
+          if (step > 0) {
+            log(`  … waiting ${DELAY_MS} ms`);
+            await sleep(DELAY_MS);
+          }
+          step++;
+          const r = await fetchOnce(name, URLS[name]);
+          results[name].push(r);
+          const tag = r.ok ? "OK" : "FAIL";
+          const extra = [
+            r.protocol,
+            r.transferSize != null ? `wire=${r.transferSize}B` : null,
+            r.decodedBodySize != null ? `decoded=${r.decodedBodySize}B` : null,
+            r.error,
+          ].filter(Boolean).join(", ");
+          log(`  [${step}/${total}] ${name.padEnd(8)} ${tag.padEnd(4)} ${r.ms.toFixed(1).padStart(10)} ms  ${extra}`);
+        }
+      }
+
+      log("\n========== SUMMARY ==========");
+      const summaries = {};
+      for (const name of names) {
+        const s = stats(results[name]);
+        summaries[name] = s;
+        log(`\n── ${name} ──`);
+        log(`  URL: ${URLS[name]}`);
+        if (!s.ok) { log("  no successful samples"); continue; }
+        log(`  success: ${s.ok}/${s.count}`);
+        log(`  min:  ${s.min.toFixed(1)} ms`);
+        log(`  avg:  ${s.avg.toFixed(1)} ms`);
+        log(`  p50:  ${s.p50.toFixed(1)} ms`);
+        log(`  p95:  ${s.p95.toFixed(1)} ms`);
+        log(`  max:  ${s.max.toFixed(1)} ms`);
+      }
+
+      const a = summaries.preprod;
+      const b = summaries.awswaf;
+      if (a && a.ok && b && b.ok) {
+        const diff = a.avg - b.avg;
+        const faster = diff < 0 ? "preprod" : "awswaf";
+        const slower = diff < 0 ? "awswaf" : "preprod";
+        const ratio = Math.max(a.avg, b.avg) / Math.min(a.avg, b.avg);
+        log("\n── comparison (by avg) ──");
+        log(`  ${faster} is faster by ${Math.abs(diff).toFixed(1)} ms (~${ratio.toFixed(2)}x vs ${slower})`);
+      }
+
+      window.__SPEED_RESULT__ = {
+        done: true,
+        client: "browser-iframe",
+        rounds: ROUNDS,
+        delayMs: DELAY_MS,
+        results,
+        summaries,
+        ua: navigator.userAgent,
+      };
+      log("\nDONE");
+    }
+
+    document.getElementById("run").addEventListener("click", () => {
+      window.__SPEED_RESULT__ = { done: false };
+      run().catch((e) => {
+        log("ERROR: " + e);
+        window.__SPEED_RESULT__ = { done: true, error: String(e) };
+      });
+    });
+
+    window.__SPEED_RESULT__ = { done: false };
+    run().catch((e) => {
+      log("ERROR: " + e);
+      window.__SPEED_RESULT__ = { done: true, error: String(e) };
+    });
+  </script>
+</body>
+</html>
