@@ -903,28 +903,30 @@ function teamView(): string {
     const picking = selectedSlot === i || (selectedSlot === null && i === focusIndex && !!uid) ? ' picking' : ''
     if (!uid) {
       return `<button type="button" class="slot-v2 empty ${row} col-${col}${picking}" data-slot="${i}" aria-label="${rank}排空位">
-        <span class="slot-v2-plus">+</span>
+        <span class="slot-v2-blank"><span class="slot-v2-plus">+</span></span>
         <i class="slot-v2-rank">${rank}</i>
       </button>`
     }
     const o = store.save.owned.find((x) => x.uid === uid)
     if (!o) {
       return `<button type="button" class="slot-v2 empty ${row} col-${col}${picking}" data-slot="${i}" aria-label="${rank}排空位">
-        <span class="slot-v2-plus">+</span>
+        <span class="slot-v2-blank"><span class="slot-v2-plus">+</span></span>
         <i class="slot-v2-rank">${rank}</i>
       </button>`
     }
     const h = HERO_MAP[o.heroId]
     const bondN = bondCountByHero.get(h.id) ?? 0
     return `<div class="slot-v2 filled ${row} col-${col} rarity-${h.rarity} faction-${h.faction}${picking}" data-slot="${i}" data-clear="${uid}" role="button" aria-label="${h.name}">
-      <span class="slot-v2-shadow"></span>
-      <img class="slot-v2-sprite" src="/sprites/${h.id}.png" alt="" />
-      <div class="slot-v2-tag">
-        <b class="slot-v2-name">${h.name}</b>
-        <i class="slot-v2-bond">激活缘分:${bondN}个</i>
-      </div>
+      <span class="slot-v2-fig">
+        <img class="slot-v2-sprite" src="/sprites/${h.id}.png" alt="" />
+        <span class="slot-v2-shadow"></span>
+        <div class="slot-v2-tag">
+          <b class="slot-v2-name">${h.name}</b>
+          <i class="slot-v2-bond">缘分${bondN}</i>
+        </div>
+        <i class="slot-v2-x" data-slot-clear="${i}" aria-hidden="true">×</i>
+      </span>
       <i class="slot-v2-rank">${rank}</i>
-      <i class="slot-v2-x" data-slot-clear="${i}" aria-hidden="true">×</i>
     </div>`
   }
 
@@ -1037,9 +1039,6 @@ function teamView(): string {
       ${bench
         .map((o) => heroCardHtml(o, { pick: true, compact: true, selected: team.includes(o.uid), hidden: !matchesPick(HERO_MAP[o.heroId]) }))
         .join('')}
-      <div class="bench-locked" aria-hidden="true"><i>🔒</i></div>
-      <div class="bench-locked" aria-hidden="true"><i>🔒</i></div>
-      <div class="bench-locked" aria-hidden="true"><i>🔒</i></div>
     </div>
     <p class="pick-empty muted"${bench.some((o) => matchesPick(HERO_MAP[o.heroId])) ? ' hidden' : ''}>没有符合的武将</p>
   </section>`
@@ -1719,15 +1718,6 @@ function bindTeamDrag(root: HTMLElement): void {
     const to = slotEl ? Number(slotEl.dataset.slot) : NaN
     const from = src.slot
     const uid = src.uid
-    ;(window as unknown as { __drag?: unknown }).__drag = {
-      hit: slotEl?.dataset.slot ?? null,
-      to,
-      from,
-      uid,
-      x: e.clientX,
-      y: e.clientY,
-      el: (document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null)?.className ?? null,
-    }
     clearVisual()
     src = null
     dragging = false

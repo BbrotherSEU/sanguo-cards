@@ -29,11 +29,15 @@
 
 ### 改动
 
-**A. 竖排 3×2（style.css:7031-7040 改坐标，HTML/类名不动，`col-N` 重解释为纵向行号）**
+**A. 竖排 3×2（style.css + render.ts）**
 
 战斗回放中我方在左、前排靠右迎敌（battlePlay.ts:169-174），布阵舞台与之一致：
-- `.slot-v2.front`（槽 0/1/2，前排右列）：`left:66%`；`col-0/1/2` → `top:12%/40%/68%`；宽 100px。
-- `.slot-v2.back`（槽 3/4/5，后排左列）：`left:28%`；`col-0/1/2` → `top:12%/40%/68%`；宽 76px。
+- 舞台 `.form-v2-stage` 改为 **CSS Grid**：`grid-template-columns: 150px 200px`（左列=后排，右列=前排）、`grid-template-rows: repeat(3, minmax(0,1fr))`、`justify-content/justify-items: center`。
+  - 采用网格而非百分比绝对定位：舞台可用高度仅 ~296px，`top:12%/40%/68%` 的绝对定位会让三行矩形互相重叠（slot0 246–378 与 slot1 306–420 重叠 72px），后渲染的槽位覆盖前者，`elementFromPoint` 命中错位导致拖拽换位"看起来没反应"。网格排布从根本上保证槽位互不重叠。
+  - `.slot-v2.back` → `grid-column: 1`、`.slot-v2.front` → `grid-column: 2`；`col-0/1/2` 重解释为纵向行号 → `grid-row: 1/2/3`。
+- 槽位结构改为 flex 竖排（render.ts）：`.slot-v2` > `.slot-v2-fig`（立绘，flex:1）+ `.slot-v2-tag`（名字/缘分，浮在立绘脚下）。空槽用 `.slot-v2-blank` 承载虚线框。
+- 立绘 `object-fit: contain; max-height: 100%`；后排立绘 `max-height: 76%` 形成前后大小差。
+- 名字标签移到立绘脚下（原来是浮在头顶，竖排 3 行时头部标签会互相压叠）。
 
 **B. 拖拽修复（render.ts）**
 - `bindTeamDrag` 三处 `.form-board` → `.form-v2-stage`（1595/1612/1635）。
@@ -51,10 +55,12 @@
 - keep 增加 `benchLeft = root.querySelector('.bench-strip')?.scrollLeft ?? 0`；同屏重绘后恢复 `.bench-strip` 的 scrollLeft（仿照 mainTop 现有写法）。
 
 **E. bench 展示 + 过滤修复**
-- style.css：`.panel.form-v2-bench` 去 `max-height`，加 `min-height:0`；`.shell.screen-team .main` 行高 `minmax(0,1fr) auto` → `minmax(0,1.15fr) minmax(0,1fr)`；`.bench-strip` 改 `flex-wrap:wrap; overflow-y:auto; overflow-x:hidden; align-content:flex-start`。
-- style.css 补 `.bench-strip .hero-card[hidden]{display:none}`。
+- style.css：`.panel.form-v2-bench` 去 `max-height`、加 `min-height:0`；`.shell.screen-team .main` 行高改为 `minmax(0,1fr) 206px`（舞台优先，待上阵区固定高度内换行滚动）；`.bench-strip` 改 `flex-wrap:wrap; overflow-y:auto; overflow-x:hidden; align-content:flex-start`。
+- style.css 补 `.bench-strip .hero-card[hidden]{display:none}`（兜底 `display:grid` 覆盖 UA `[hidden]`）。
+- style.css：`.bench-strip .hero-card` 补 `min-height:92px`（原 `.hero-card{min-height:210px}` 会把卡撑到 210px 却被 88px 卡框裁切，是"展示不全"的直接原因），并让 `.art` 取消 3:4 固定比例改为自适应剩余空间。
+- style.css：`.form-v2-bench h3` 改 `align-self:flex-start`（标题绶带原本被 flex 拉伸成整条红带，挤占待上阵区）。
 - render.ts:1997 过滤选择器 → `.bench-strip [data-faction], .pick-grid [data-faction]`。
-- render.ts bench 渲染（1033-1035）：`hidden: !matchesPick(...)` 初始隐藏逻辑保留（修复后真正生效）；`.bench-locked` 三个锁定格保留在末尾。
+- render.ts bench 渲染：移除末尾 3 个 `.bench-locked` 占位格（它们排在最后会把卡片挤到第二行并撑高滚动区）。
 
 ### 验证
 - 布阵页：两列三行，前排右列大立绘、后排左列小立绘；拖拽 slot↔slot 换位、bench→slot 上阵、slot→bench 下阵均生效；点击已上阵 bench 卡下阵；队满点未上阵卡出 toast；反复上阵/下阵 bench 滚动条不跳。
@@ -66,14 +72,18 @@
 - **难度类型**：`export type Difficulty = 'normal' | 'hard' | 'hero' | 'epic'`，放在 types.ts。
 - **进度独立**：SaveData 新增 `stageHardCleared / stageHeroCleared / stageEpicCleared: number`（默认 0），普通沿用 `stageCleared`。
 - **解锁链**：挑战第 N 关某难度需：该难度第 N-1 关已通（递进），且 困难需普通 N 已通、英雄需困难 N 已通、史诗需英雄 N 已通。
-- **数值**：`makeStage(id, diff='normal')` 在现有 waves 生成后对每个敌人按难度缩放属性（不改等级，避免突破/觉醒门槛公式失真）：
-  | 难度 | 敌方属性 | Boss 额外 | 银两/经验奖励 | 首次通关元宝 |
+- **数值**：`makeStage(id, diff='normal')` 在现有 waves 生成后对每个敌人按难度缩放属性（不改等级，避免突破/觉醒门槛公式失真）。倍率随关卡推进递增（`mult = 1 + (base-1) × (id/200)^0.8`），保证前期不卡进度、终关形成门槛：
+  | 难度 | 敌方属性终关 | Boss 额外 | 银两/经验奖励 | 首次通关元宝 |
   |---|---|---|---|---|
   | 普通 | ×1.0 | — | ×1 | 现状 |
-  | 困难 | ×1.6 | — | ×2 | ×2 |
-  | 英雄 | ×2.4 | Boss 突破+2 | ×3.5 | ×3 |
-  | 史诗 | ×4.2 | Boss 突破+2、觉醒+3 | ×6 | ×5 |
-- **校准目标**：史诗第 200 关需 6 名满配神将（SSR Lv.120、突破+5、觉醒5、神将1.35×、专属装备+100 满锻）才能险胜；同阵容非神将版本应失败。实现后用 Node 模拟脚本回归校准 ×4.2（允许微调至满足该判据）。
+  | 困难 | ×3.2 | — | ×2 | ×2 |
+  | 英雄 | ×4.2 | Boss 突破+2 | ×3.5 | ×3 |
+  | 史诗 | ×5.2 | Boss 突破+2、觉醒+3 | ×6 | ×5 |
+- **倍率曲线**：`difficultyMult(diff, id) = 1 + (base-1) × diffCurve(id, 200)`，`diffCurve(id) = (id/200)^0.8`。第 1 关倍率仅 1.03/1.05/1.06，递进解锁链不会卡死。
+- **校准目标与结果**（Node 模拟 20 次取样）：
+  - 史诗 200 关：6 名满配神将 90–95% 胜、存活 3.2–3.5；5 神将 0–25%；6 满配凡人 25–45%；5 凡人 0%；裸装 0%；未觉醒 0%。
+  - 阶梯：普通 6 神将 100%/6.0 活 → 困难 100%/6.0 活 → 英雄 100%/5.3 活 → 史诗 95%/3.2 活。
+  - 普通档回归：倍率恒为 1，奖励与改动前完全一致。
 - **扫荡**：各难度独立，`stageId <= 该难度进度` 可扫荡，共用每日扫荡次数。
 - **自动推图**：在当前所选难度上连战（沿用现有 onBattlePlaybackDone 调度）。
 

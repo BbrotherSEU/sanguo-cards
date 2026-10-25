@@ -142,7 +142,7 @@ const state = () => page.evaluate(() => {
 console.log('\n=== T1 装备弹层保留人物界面虚化背景 ===')
 await goScreen('roster')
 await page.evaluate(() => {
-  const c = document.querySelector('.hero-card.clickable, [data-open]')
+  const c = document.querySelector('[data-open="u_guanyu_0"]') || document.querySelector('.hero-card.clickable, [data-open]')
   if (c) c.click()
 })
 await new Promise((r) => setTimeout(r, 600))
@@ -257,7 +257,7 @@ if (benchInfo) {
   check(benchInfo.wrap === 'wrap', '待上阵列表改为多行换行排列', benchInfo.wrap)
   check(benchInfo.inside === benchInfo.total, `待上阵武将完整展示（${benchInfo.inside}/${benchInfo.total} 张在可视区内）`)
   check(benchInfo.overflowY === 'auto' || benchInfo.overflowY === 'scroll', '超出时纵向可滚动', benchInfo.overflowY)
-  check(benchInfo.clientH > 190, '待上阵区高度不再被 190px 截断', `${benchInfo.clientH}px`)
+  check(benchInfo.clientH >= benchInfo.scrollH, '待上阵区不再被固定高度截断', `${benchInfo.clientH}px / 内容 ${benchInfo.scrollH}px`)
 }
 
 // 过滤
@@ -311,9 +311,22 @@ if (!pickFlow.err) {
 // 满员时点未上阵武将应提示先选阵位
 const fullToast = await page.evaluate(async () => {
   const team = () => [...document.querySelectorAll('.slot-v2.filled')].map((s) => s.dataset.clear)
+  // 先把阵容补满
+  for (let i = 0; i < 8; i++) {
+    const cur = team()
+    if (cur.length >= 6) break
+    const card = [...document.querySelectorAll('.bench-strip .hero-card')].find(
+      (c) => c.getBoundingClientRect().width > 0 && !cur.includes(c.dataset.pick),
+    )
+    if (!card) break
+    card.click()
+    await new Promise((r) => setTimeout(r, 300))
+  }
   const cur = team()
-  const card = [...document.querySelectorAll('.bench-strip .hero-card')].find((c) => !cur.includes(c.dataset.pick))
-  if (!card) return { toast: '', count: team().length }
+  const card = [...document.querySelectorAll('.bench-strip .hero-card')].find(
+    (c) => c.getBoundingClientRect().width > 0 && !cur.includes(c.dataset.pick),
+  )
+  if (!card) return { toast: '', count: cur.length }
   card.click()
   await new Promise((r) => setTimeout(r, 350))
   return { toast: document.querySelector('.toast')?.textContent ?? '', count: team().length }
@@ -469,6 +482,10 @@ check(prep.tag.trim() === '困难', '备战页显示当前难度标签', prep.ta
 
 // 上位难度未通关时，本档高关卡应被拦截
 const unlockMsg = await page.evaluate(async () => {
+  document.querySelector('[data-nav="campaign"]')?.click()
+  await new Promise((r) => setTimeout(r, 500))
+  document.querySelector('[data-open-chapter="1"]')?.click()
+  await new Promise((r) => setTimeout(r, 500))
   const node = document.querySelector('[data-challenge="2"]')
   return { disabled: node?.disabled, tip: node?.getAttribute('title') ?? '' }
 })
