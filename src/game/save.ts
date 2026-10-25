@@ -54,6 +54,7 @@ function normalizeHero(h: Partial<OwnedHero> & { uid: string; heroId: string }):
     awaken: h.awaken ?? 0,
     exp: h.exp ?? 0,
     gear: h.gear ?? {},
+    divine: h.divine ?? false,
   }
 }
 
@@ -89,6 +90,9 @@ export function defaultSave(): SaveData {
     playerLevel: 1,
     playerExp: 0,
     stageCleared: 0,
+    stageHardCleared: 0,
+    stageHeroCleared: 0,
+    stageEpicCleared: 0,
     owned,
     equips: [
       { uid: uid(), equipId: 'blade_green', level: 1 },
@@ -110,6 +114,8 @@ export function defaultSave(): SaveData {
     dailyDay: todayKey(),
     dailyClaimed: false,
     sweepsLeft: DAILY_SWEEPS,
+    battleSpeed: 1,
+    pushSpeed: 4,
   }
 }
 
@@ -147,6 +153,8 @@ export function loadSave(): SaveData {
       dailyDay: data.dailyDay ?? '',
       dailyClaimed: data.dailyClaimed ?? false,
       sweepsLeft: data.sweepsLeft ?? 8,
+      battleSpeed: num(data.battleSpeed, 1) || 1,
+      pushSpeed: num(data.pushSpeed, 4) || 4,
     })
     relocateGear(merged)
     if (!localStorage.getItem('sanguo-gear-slots')) {
@@ -243,6 +251,9 @@ export function acceptServerSave(data: Partial<SaveData> | null | undefined): Sa
     playerLevel: Math.max(1, num(data.playerLevel, 1)),
     playerExp: num(data.playerExp),
     stageCleared: num(data.stageCleared),
+    stageHardCleared: num(data.stageHardCleared),
+    stageHeroCleared: num(data.stageHeroCleared),
+    stageEpicCleared: num(data.stageEpicCleared),
     pity: num(data.pity),
     pullCount: num(data.pullCount),
     arenaPoints: num(data.arenaPoints),
@@ -257,6 +268,8 @@ export function acceptServerSave(data: Partial<SaveData> | null | undefined): Sa
     dailyDay: data.dailyDay ?? '',
     dailyClaimed: data.dailyClaimed ?? false,
     sweepsLeft: num(data.sweepsLeft, 8),
+    battleSpeed: num(data.battleSpeed, 1) || 1,
+    pushSpeed: num(data.pushSpeed, 4) || 4,
   })
   relocateGear(merged)
   if (walletFullPending || !localStorage.getItem(WALLET_FULL_KEY)) {

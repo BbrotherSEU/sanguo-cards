@@ -1,9 +1,11 @@
 import { HERO_MAP, FACTION_LABEL } from '../data/heroes'
 import { attackLine } from '../data/attackLine'
-import { pickActive, unlockedSkills } from '../data/skills'
+import { chooseSkill, unlockedSkills, type SkillContext } from '../data/skills'
 import type { OwnedEquip, OwnedHero, StageDef } from '../data/types'
 import { enemyBreakthrough, squadSlots } from './squad'
 import { calcStats, factionAuras, formationMods } from './stats'
+import { condMet } from './skillFx'
+import { execSkill, makeCtx, tickPassive, type ExecHooks } from './skillExec'
 
 export type Fighter = {
   uid: string
@@ -16,6 +18,9 @@ export type Fighter = {
   def: number
   skill: string
   breakthrough: number
+  divine: boolean
+  /** 觉醒星数，决定觉醒技解锁 */
+  awaken: number
   color: string
   alive: boolean
   /** 0 起，0–2 前排，3–5 后排 */
@@ -30,6 +35,27 @@ export type Fighter = {
   poisonTick: number
   burnFrom?: string
   poisonFrom?: string
+  /** 护盾值：优先抵消伤害 */
+  shield: number
+  /** 标记：受到的伤害提高的比例 */
+  mark: number
+  markTurns: number
+  /** 嘲讽来源，强制其优先攻击自己 */
+  tauntBy?: string
+  tauntTurns: number
+  /** 破甲：防御降低比例 */
+  defDown: number
+  defDownTurns: number
+  /** 削弱：攻击降低比例 */
+  atkDown: number
+  atkDownTurns: number
+  /** 加速：行动顺序提前的档位 */
+  haste: number
+  hasteTurns: number
+  /** 主动技已使用次数，按技能名记录 */
+  skillUses: Record<string, number>
+  /** 主动技冷却剩余回合，按技能名记录 */
+  cooldowns: Record<string, number>
 }
 
 export type HpSnap = { uid: string; heroId: string; name: string; hp: number; maxHp: number; side: 'ally' | 'enemy'; color: string; slot: number }
@@ -124,6 +150,8 @@ function makeFighter(
     def: Math.round(s.def * (1 + defB)),
     skill: def.skill,
     breakthrough: owned.breakthrough ?? 0,
+    divine: owned.divine ?? false,
+    awaken: owned.awaken ?? 0,
     color: def.color,
     alive: true,
     slot,
@@ -135,16 +163,62 @@ function makeFighter(
     stun: 0,
     burnTick: 0,
     poisonTick: 0,
+    shield: 0,
+    mark: 0,
+    markTurns: 0,
+    tauntTurns: 0,
+    defDown: 0,
+    defDownTurns: 0,
+    atkDown: 0,
+    atkDownTurns: 0,
+    haste: 0,
+    hasteTurns: 0,
+    skillUses: {},
+    cooldowns: {},
   }
 }
 
+/** 有效防御：受破甲影响 */
+function effDef(target: Fighter): number {
+  return Math.max(0, target.def * (1 - target.defDown))
+}
+
+/** 有效攻击：受削弱影响 */
+function effAtk(actor: Fighter): number {
+  return Math.max(1, actor.atk * (1 - actor.atkDown))
+}
+
+/** 技能执行器依赖的结算回调 */
+const EXEC_HOOKS: ExecHooks = {
+  hit: (actor, target, mult) => strike(actor, target, mult),
+  mend: (actor, target, amount) => mend(actor, target, amount),
+  effDef: (target) => effDef(target),
+  effAtk: (actor) => effAtk(actor),
+  randomFoe: (foes) => {
+    const pool = alive(foes)
+    return pool.length ? pool[Math.floor(Math.random() * pool.length)] : undefined
+  },
+}
+
 function strike(actor: Fighter, target: Fighter, mult: number): number {
-  const hurt = dmg(actor.atk, target.def, mult)
-  target.hp -= hurt
+  const hurt = dmg(effAtk(actor), effDef(target), mult)
+  return applyDamage(actor, target, hurt)
+}
+
+/** 结算伤害：先扣护盾，再扣生命 */
+function applyDamage(actor: Fighter, target: Fighter, hurt: number): number {
+  const real = Math.round(hurt * (1 + target.mark))
+  let rest = real
+  if (target.shield > 0) {
+    const absorbed = Math.min(target.shield, rest)
+    target.shield -= absorbed
+    rest -= absorbed
+  }
+  target.hp -= rest
   if (target.hp <= 0) target.alive = false
-  actor.dealt += hurt
-  target.taken += hurt
-  return hurt
+  actor.dealt += real
+  target.taken += rest
+  return real
 }
 
 function mend(actor: Fighter, target: Fighter, amount: number): void {
@@ -161,41 +235,50 @@ function tickRegen(log: BattleEvent[], allies: Fighter[], enemies: Fighter[]): v
   for (const f of [...allies, ...enemies]) {
     if (!f.alive || f.hp <= 0) continue
     const friends = f.side === 'ally' ? allies : enemies
-    const passives = unlockedSkills(f.heroId, f.breakthrough).filter((s) => s.kind === 'passive')
+    const foes = f.side === 'ally' ? enemies : allies
+    const passives = unlockedSkills(f.heroId, f.breakthrough, f.divine, f.awaken).filter((s) => s.kind === 'passive')
     for (const sk of passives) {
-      if (sk.fx === 'regen') {
-        const weak = alive(friends).sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0]
-        if (!weak || weak.hp >= weak.maxHp) continue
-        const heal = Math.round(f.atk * (0.4 + sk.power))
-        mend(f, weak, heal)
-        push(log, allies, enemies, {
-          kind: 'heal',
-          text: `${f.name}【${sk.name}】治疗 ${weak.name} +${heal}`,
-          actorId: f.uid,
-          targetIds: [weak.uid],
-          value: heal,
-          fx: 'heal',
-        })
-      } else if (sk.fx === 'regen-all') {
-        const wounded = alive(friends).filter((a) => a.hp < a.maxHp)
-        if (!wounded.length) continue
-        const heal = Math.round(f.atk * 0.28)
-        const tids: string[] = []
-        let total = 0
-        for (const t of wounded) {
-          mend(f, t, heal)
-          tids.push(t.uid)
-          total += heal
-        }
-        push(log, allies, enemies, {
-          kind: 'heal',
-          text: `${f.name}【${sk.name}】治疗我方全体 +${total}`,
-          actorId: f.uid,
-          targetIds: tids,
-          value: total,
-          fx: 'heal-all',
-        })
-      }
+      const ctx = makeCtx(f, foes, friends)
+      if (!condMet(sk.cond, ctx)) continue
+      const res = tickPassive(sk, ctx, EXEC_HOOKS)
+      if (!res) continue
+      push(log, allies, enemies, {
+        kind: res.kind,
+        text: res.text,
+        actorId: f.uid,
+        targetIds: res.targetIds,
+        value: res.value,
+        fx: res.fx,
+      })
+    }
+  }
+}
+
+/** 各回合结束时衰减持续状态 */
+function tickStatus(allies: Fighter[], enemies: Fighter[]): void {
+  for (const f of [...allies, ...enemies]) {
+    if (f.markTurns > 0) {
+      f.markTurns -= 1
+      if (f.markTurns <= 0) f.mark = 0
+    }
+    if (f.tauntTurns > 0) {
+      f.tauntTurns -= 1
+      if (f.tauntTurns <= 0) f.tauntBy = undefined
+    }
+    if (f.defDownTurns > 0) {
+      f.defDownTurns -= 1
+      if (f.defDownTurns <= 0) f.defDown = 0
+    }
+    if (f.atkDownTurns > 0) {
+      f.atkDownTurns -= 1
+      if (f.atkDownTurns <= 0) f.atkDown = 0
+    }
+    if (f.hasteTurns > 0) {
+      f.hasteTurns -= 1
+      if (f.hasteTurns <= 0) f.haste = 0
+    }
+    for (const key of Object.keys(f.cooldowns)) {
+      f.cooldowns[key] = Math.max(0, f.cooldowns[key] - 1)
     }
   }
 }
@@ -252,7 +335,15 @@ function pack(win: boolean, log: BattleEvent[], rounds: number, allies: Fighter[
   return { win, log, rounds, allies, enemies, report, exp: [] }
 }
 
-function makeEnemy(heroId: string, level: number, slot: number, bt = 0, aw = 0, uidPrefix = 'e'): Fighter {
+function makeEnemy(
+  heroId: string,
+  level: number,
+  slot: number,
+  bt = 0,
+  aw = 0,
+  uidPrefix = 'e',
+  mult = 1,
+): Fighter {
   const owned: OwnedHero = {
     uid: `${uidPrefix}_${slot}`,
     heroId,
@@ -263,7 +354,9 @@ function makeEnemy(heroId: string, level: number, slot: number, bt = 0, aw = 0, 
     exp: 0,
     gear: {},
   }
-  return makeFighter(owned, [], 'enemy', slot, 0, 0, 0)
+  // 难度倍率直接作用在最终属性上
+  const b = mult - 1
+  return makeFighter(owned, [], 'enemy', slot, b, b, b)
 }
 
 function alive(list: Fighter[]) {
@@ -276,6 +369,46 @@ function pickFront(list: Fighter[]) {
   const front = a.filter((f) => f.slot < 3)
   const pool = front.length ? front : a
   return pool.slice().sort((x, y) => x.slot - y.slot)[0]
+}
+
+/** 普攻目标：若敌方有被嘲讽者，优先攻击嘲讽来源 */
+function pickTargetWithTaunt(foes: Fighter[]): Fighter | null {
+  const taunted = alive(foes).find((f) => f.tauntTurns > 0 && f.tauntBy)
+  if (taunted) return taunted
+  return pickFront(foes)
+}
+
+/** 吸血被动比例：取自身被动技能中最高的 drain 比例 */
+function drainRatioOf(f: Fighter): number {
+  let best = 0
+  for (const sk of unlockedSkills(f.heroId, f.breakthrough, f.divine, f.awaken)) {
+    if (sk.kind === 'passive' && sk.fx === 'drain') best = Math.max(best, sk.value ?? 0)
+  }
+  return best
+}
+
+/** 主动技是否可用：受每场次数上限与冷却限制 */
+function skillUsable(f: Fighter, sk: { name: string; uses?: number }): boolean {
+  if ((f.cooldowns[sk.name] ?? 0) > 0) return false
+  const limit = sk.uses ?? DEFAULT_USES
+  return (f.skillUses[sk.name] ?? 0) < limit
+}
+
+/** 主动技每场默认释放次数 */
+const DEFAULT_USES = 3
+
+/** 构造技能选择用的战场情境 */
+function skillCtxOf(f: Fighter, allies: Fighter[], enemies: Fighter[]): SkillContext {
+  const friends = f.side === 'ally' ? allies : enemies
+  const foes = f.side === 'ally' ? enemies : allies
+  const pack = (list: Fighter[]) =>
+    list.map((x) => ({ hp: x.hp, maxHp: x.maxHp, slot: x.slot, burn: x.burn, poison: x.poison, stun: x.stun }))
+  return {
+    hp: f.hp,
+    maxHp: f.maxHp,
+    allies: pack(friends),
+    enemies: pack(foes),
+  }
 }
 
 function expandLine(primary: Fighter, foes: Fighter[], line: 'row' | 'col'): Fighter[] {
@@ -334,7 +467,7 @@ export function simulateBattle(
     })
   }
 
-  const outcome = runRounds(log, allies, enemies)
+  const outcome = runRounds(log, allies, enemies, mod.bonds)
   if (outcome.win) {
     push(log, allies, enemies, { kind: 'win', text: `胜利！历经 ${outcome.rounds} 回合扫清敌军` })
   } else if (alive(allies).length) {
@@ -345,8 +478,59 @@ export function simulateBattle(
   return pack(outcome.win, log, outcome.rounds, allies, enemies)
 }
 
-/** 跑一整个遭遇战（单波），不推送胜负收尾事件，由调用方决定文案 */
-function runRounds(log: BattleEvent[], allies: Fighter[], enemies: Fighter[]): { win: boolean; rounds: number } {
+/** 合击：羁绊成员满员且存活时发动，对敌方全体造成合击伤害 */
+function tickCombo(
+  log: BattleEvent[],
+  allies: Fighter[],
+  enemies: Fighter[],
+  bonds: { id: string; name: string; heroes: string[]; combo: string; comboMult: number }[],
+): void {
+  const foeList = alive(enemies)
+  if (!foeList.length) return
+  for (const bond of bonds) {
+    // 需要该羁绊全部成员都在场
+    const members = bond.heroes
+      .map((hid) => allies.find((a) => a.heroId === hid))
+      .filter((a): a is Fighter => !!a)
+    if (members.length < bond.heroes.length) continue
+    const aliveMembers = members.filter((m) => m.alive && m.hp > 0)
+    if (aliveMembers.length < 2) continue
+    // 取两名最强成员出手
+    const casters = aliveMembers.sort((a, b) => b.atk - a.atk).slice(0, 2)
+    const avgAtk = casters.reduce((s, c) => s + effAtk(c), 0) / casters.length
+    const mult = bond.comboMult
+    let total = 0
+    const ids: string[] = []
+    for (const t of foeList) {
+      const hurt = Math.max(8, Math.round(avgAtk * mult - effDef(t) * 0.2))
+      const real = applyDamage(casters[0], t, hurt)
+      total += real
+      ids.push(t.uid)
+    }
+    // 伤害统计分摊给两名施术者
+    const share = Math.round(total / casters.length)
+    casters[0].dealt = Math.max(0, casters[0].dealt - total) + share
+    if (casters[1]) casters[1].dealt += share
+    push(log, allies, enemies, {
+      kind: 'combo',
+      text: `羁绊合击【${bond.combo}】！${casters.map((c) => c.name).join('、')}合力攻敌，共造成 ${total} 伤害`,
+      actorId: casters[0].uid,
+      targetIds: ids,
+      value: total,
+      comboName: bond.combo,
+      fx: 'combo',
+    })
+    return
+  }
+}
+
+/** 跑一个整个遭遇战（单波），不推送胜负收尾事件，由调用方决定文案 */
+function runRounds(
+  log: BattleEvent[],
+  allies: Fighter[],
+  enemies: Fighter[],
+  bonds: { id: string; name: string; heroes: string[]; combo: string; comboMult: number }[] = [],
+): { win: boolean; rounds: number } {
   let rounds = 0
   const maxRounds = 30
 
@@ -354,10 +538,12 @@ function runRounds(log: BattleEvent[], allies: Fighter[], enemies: Fighter[]): {
     rounds += 1
     push(log, allies, enemies, { kind: 'round', text: `—— 第 ${rounds} 回合 ——` })
     tickRegen(log, allies, enemies)
+    // 合击：羁绊满员时每隔数回合发动一次
+    if (rounds % 4 === 2) tickCombo(log, allies, enemies, bonds)
 
     const order = [
-      ...alive(allies).sort((a, b) => a.slot - b.slot),
-      ...alive(enemies).sort((a, b) => a.slot - b.slot),
+      ...alive(allies).sort((a, b) => a.haste - b.haste || a.slot - b.slot),
+      ...alive(enemies).sort((a, b) => a.haste - b.haste || a.slot - b.slot),
     ]
 
     for (const f of order) {
@@ -376,144 +562,39 @@ function runRounds(log: BattleEvent[], allies: Fighter[], enemies: Fighter[]): {
       const friends = f.side === 'ally' ? allies : enemies
       if (!alive(foes).length) break
 
-      const active = pickActive(f.heroId, f.breakthrough, alive(friends))
-      const useSkill = !!active && (rounds % 3 === 0 || Math.random() < 0.34)
+      const ctx = makeCtx(f, foes, friends)
+      const active = chooseSkill(f.heroId, f.breakthrough, skillCtxOf(f, allies, enemies), f.divine, f.awaken)
+      const canUse = !!active && skillUsable(f, active)
+      const useSkill = canUse && (rounds % 3 === 0 || Math.random() < 0.34)
       if (useSkill && active) {
-        if (active.fx === 'heal') {
-          const weak = alive(friends).sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0]
-          if (weak) {
-            const heal = Math.round(f.atk * active.power)
-            mend(f, weak, heal)
-            push(log, allies, enemies, {
-              kind: 'heal',
-              text: `${f.name}【${active.name}】治疗 ${weak.name} +${heal}`,
-              actorId: f.uid,
-              targetIds: [weak.uid],
-              value: heal,
-              fx: 'heal',
-            })
-          }
-        } else if (active.fx === 'heal-all') {
-          const heal = Math.round(f.atk * active.power)
-          const targets = alive(friends)
-          const tids: string[] = []
-          let total = 0
-          for (const t of targets) {
-            mend(f, t, heal)
-            tids.push(t.uid)
-            total += heal
-          }
+        // 记录使用次数与冷却
+        f.skillUses[active.name] = (f.skillUses[active.name] ?? 0) + 1
+        if (active.cooldown) f.cooldowns[active.name] = active.cooldown
+        const res = execSkill(active, ctx, EXEC_HOOKS)
+        if (res) {
           push(log, allies, enemies, {
-            kind: 'heal',
-            text: `${f.name}【${active.name}】治疗我方全体 +${total}`,
+            kind: res.kind,
+            text: res.text,
             actorId: f.uid,
-            targetIds: tids,
-            value: total,
-            fx: 'heal-all',
+            targetIds: res.targetIds,
+            value: res.value,
+            fx: res.fx,
           })
-        } else if (active.fx === 'burn') {
-          const tick = Math.max(8, Math.round(f.atk * 0.2))
-          const tids: string[] = []
-          let total = 0
-          for (const t of alive(foes)) {
-            total += strike(f, t, active.power * 0.6)
-            t.burn = Math.max(t.burn, 2)
-            t.burnTick = Math.max(t.burnTick, tick)
-            t.burnFrom = f.uid
-            tids.push(t.uid)
-          }
-          push(log, allies, enemies, {
-            kind: 'skill',
-            text: `${f.name}【${active.name}】灼烧敌阵，造成 ${total} 伤害`,
-            actorId: f.uid,
-            targetIds: tids,
-            value: total,
-            fx: 'burn',
-          })
-        } else if (active.fx === 'poison') {
-          const tick = Math.max(6, Math.round(f.atk * 0.16))
-          const tids: string[] = []
-          let total = 0
-          for (const t of alive(foes)) {
-            total += strike(f, t, active.power * 0.38)
-            t.poison = Math.max(t.poison, 3)
-            t.poisonTick = Math.max(t.poisonTick, tick)
-            t.poisonFrom = f.uid
-            tids.push(t.uid)
-          }
-          push(log, allies, enemies, {
-            kind: 'skill',
-            text: `${f.name}【${active.name}】施毒，造成 ${total} 伤害`,
-            actorId: f.uid,
-            targetIds: tids,
-            value: total,
-            fx: 'poison',
-          })
-        } else if (active.fx === 'control') {
-          const t = pickFront(foes)
-          if (t) {
-            const hurt = strike(f, t, Math.max(0.4, active.power * 0.35))
-            t.stun = Math.max(t.stun, 1)
-            push(log, allies, enemies, {
-              kind: 'skill',
-              text: `${f.name}【${active.name}】控制 ${t.name} -${hurt}，下回合无法行动`,
-              actorId: f.uid,
-              targetIds: [t.uid],
-              value: hurt,
-              fx: 'control',
-            })
-          }
-        } else if (active.fx === 'aoe') {
-          const tids: string[] = []
-          let total = 0
-          for (const t of alive(foes)) {
-            const hurt = strike(f, t, active.power)
-            tids.push(t.uid)
-            total += hurt
-          }
-          push(log, allies, enemies, {
-            kind: 'skill',
-            text: `${f.name}【${active.name}】扫过敌阵，共造成 ${total} 伤害`,
-            actorId: f.uid,
-            targetIds: tids,
-            value: total,
-            fx: 'aoe',
-          })
-        } else if (active.fx === 'execute') {
-          const t = alive(foes).sort((a, b) => a.hp - b.hp)[0]
-          if (t) {
-            const hurt = strike(f, t, active.power)
-            push(log, allies, enemies, {
-              kind: 'skill',
-              text: `${f.name}【${active.name}】锁定 ${t.name} -${hurt}`,
-              actorId: f.uid,
-              targetIds: [t.uid],
-              value: hurt,
-              fx: 'execute',
-            })
-          }
-        } else {
-          const t = pickFront(foes)
-          if (t) {
-            const hurt = strike(f, t, active.power)
-            push(log, allies, enemies, {
-              kind: 'skill',
-              text: `${f.name}【${active.name}】重创 ${t.name} -${hurt}`,
-              actorId: f.uid,
-              targetIds: [t.uid],
-              value: hurt,
-              fx: 'strike',
-            })
-          }
         }
       } else {
-        const t = pickFront(foes)
+        const t = pickTargetWithTaunt(foes)
         if (t) {
           const line = attackLine(f.heroId)
           const targets = line ? expandLine(t, foes, line) : [t]
           let total = 0
           for (const foe of targets) {
             total += strike(f, foe, foe.uid === t.uid ? 1 : 0.62)
+          }
+          // 吸血被动：普攻按比例回血
+          const drainRatio = drainRatioOf(f)
+          if (drainRatio > 0 && total > 0) {
+            const back = Math.round(total * drainRatio)
+            mend(f, f, back)
           }
           push(log, allies, enemies, {
             kind: 'hit',
@@ -530,6 +611,7 @@ function runRounds(log: BattleEvent[], allies: Fighter[], enemies: Fighter[]): {
     }
 
     tickDots(log, allies, enemies)
+    tickStatus(allies, enemies)
 
     if (!alive(enemies).length) return { win: true, rounds }
     if (!alive(allies).length) return { win: false, rounds }
@@ -572,11 +654,13 @@ export function simulateStageBattle(
   for (let w = 0; w < waves.length; w++) {
     const waveIn = waves[w]
     const slots = squadSlots(waveIn.length)
-    enemies = waveIn.map((e, i) => makeEnemy(e.heroId, e.level, e.slot ?? slots[i] ?? i, 0, 0, `e${w}`))
+    enemies = waveIn.map((e, i) =>
+      makeEnemy(e.heroId, e.level, e.slot ?? slots[i] ?? i, e.bt ?? 0, e.aw ?? 0, `e${w}`, e.mult ?? 1),
+    )
     if (waves.length > 1) {
       push(log, allies, enemies, { kind: 'sys', text: `—— 第 ${w + 1} 波 · ${waveIn.length} 敌杀到 ——` })
     }
-    const outcome = runRounds(log, allies, enemies)
+    const outcome = runRounds(log, allies, enemies, mod.bonds)
     totalRounds += outcome.rounds
     if (!outcome.win) {
       const reason = alive(allies).length ? '苦战超时，未能破敌' : '全军覆没'

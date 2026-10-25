@@ -65,24 +65,20 @@ export function applyPull(
     next.pity = pity
     next.pullCount += 1
 
-    const existing = next.owned.find((o) => o.heroId === hero.id)
-    if (existing) {
-      existing.shards += 10
-      results.push({ hero, isNew: false, owned: existing })
-    } else {
-      const owned: OwnedHero = {
-        uid: newHeroUid(),
-        heroId: hero.id,
-        level: 1,
-        shards: 0,
-        breakthrough: 0,
-        awaken: 0,
-        exp: 0,
-        gear: {},
-      }
-      next.owned.push(owned)
-      results.push({ hero, isNew: true, owned })
+    // 重复武将以独立个体入列（神合需要同名卡），不再自动折算成碎片
+    const isNew = !next.owned.some((o) => o.heroId === hero.id)
+    const owned: OwnedHero = {
+      uid: newHeroUid(),
+      heroId: hero.id,
+      level: 1,
+      shards: 0,
+      breakthrough: 0,
+      awaken: 0,
+      exp: 0,
+      gear: {},
     }
+    next.owned.push(owned)
+    results.push({ hero, isNew, owned })
   }
 
   return { save: next, results }

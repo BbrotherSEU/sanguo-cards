@@ -4,27 +4,43 @@ import type { BattleEvent, BattleResult, HpSnap } from '../game/battle'
 import { battleSprite } from './battleSprite'
 import { weaponHtml } from './weapon'
 
+/** 战斗回放句柄：调用即停止播放，finished 标记是否已播完 */
+export type BattlePlayback = (() => void) & { finished: boolean }
+
 export function startBattlePlayback(
   root: HTMLElement,
   result: BattleResult,
-  opts: { onFinish?: () => void } = {},
-): () => void {
+  opts: { onFinish?: () => void; speed?: number; onSpeed?: (n: number) => void } = {},
+): BattlePlayback {
   const stage = root.querySelector<HTMLElement>('#battle-stage')
   const field = root.querySelector<HTMLElement>('#fight-field')
   const logEl = root.querySelector<HTMLElement>('#battle-feed')
   const skillFx = root.querySelector<HTMLElement>('#skill-fx')
   const clashFx = root.querySelector<HTMLElement>('#clash-fx')
   const title = root.querySelector<HTMLElement>('.battle-head h3')
-  if (!stage || !field || !logEl) return () => {}
+  if (!stage || !field || !logEl) {
+    const noop = (() => {}) as BattlePlayback
+    noop.finished = true
+    return noop
+  }
 
   if (title) title.textContent = '交战中'
   let idx = 0
   let timer = 0
   let stopped = false
+  // 播放速度倍率：手动战斗用 battleSpeed，自动推图用 pushSpeed
+  let speed = Math.max(1, opts.speed ?? 1)
+
+  const handle = (() => {
+    stopped = true
+    window.clearTimeout(timer)
+  }) as BattlePlayback
+  handle.finished = false
 
   const finish = () => {
     if (stopped) return
     stopped = true
+    handle.finished = true
     window.clearTimeout(timer)
     const last = result.log[result.log.length - 1]
     if (last) syncUnits(field, last.allies, last.enemies)
@@ -33,19 +49,27 @@ export function startBattlePlayback(
     opts.onFinish?.()
   }
 
-  const paceBtn = root.querySelector<HTMLButtonElement>('#battle-pace')
-  paceBtn?.addEventListener('click', () => {
-    const cur = Number(paceBtn.dataset.pace || '1')
-    const next = cur === 1 ? 4 : cur === 4 ? 8 : 1
-    paceBtn.dataset.pace = String(next)
-    paceBtn.textContent = next >= 8 ? '极速' : next > 1 ? '快进中' : '快进'
+  const paceBox = root.querySelector<HTMLElement>('#battle-speed')
+  const paintSpeed = () => {
+    paceBox?.querySelectorAll<HTMLButtonElement>('[data-speed]').forEach((b) => {
+      b.classList.toggle('on', Number(b.dataset.speed) === speed)
+    })
+  }
+  paceBox?.querySelectorAll<HTMLButtonElement>('[data-speed]').forEach((b) => {
+    b.addEventListener('click', () => {
+      speed = Number(b.dataset.speed) || 1
+      paintSpeed()
+      opts.onSpeed?.(speed)
+    })
   })
+  // 「跳过」按钮紧跟速度选择器
   const skipBtn = document.createElement('button')
   skipBtn.type = 'button'
   skipBtn.className = 'btn'
   skipBtn.textContent = '跳过'
-  paceBtn?.insertAdjacentElement('afterend', skipBtn)
+  paceBox?.insertAdjacentElement('afterend', skipBtn)
   skipBtn.addEventListener('click', finish)
+  paintSpeed()
 
   const first = result.log[0]
   if (first) syncUnits(field, first.allies, first.enemies)
@@ -57,29 +81,33 @@ export function startBattlePlayback(
       return
     }
     const ev = result.log[idx++]
-    applyEvent(stage, field, logEl, skillFx, clashFx, ev)
+    applyEvent(stage, field, logEl, skillFx, clashFx, ev, speed)
     const base = ev.kind === 'combo' ? 1500 : ev.kind === 'skill' ? 1400 : ev.kind === 'hit' || ev.kind === 'heal' ? 1300 : 380
-    timer = window.setTimeout(step, pace(base))
+    timer = window.setTimeout(step, pace(base, speed))
   }
 
-  timer = window.setTimeout(step, pace(420))
-  return () => {
-    stopped = true
-    window.clearTimeout(timer)
+  timer = window.setTimeout(step, pace(420, speed))
+  return handle
+}
+
+function pace(ms: number, speed = 1): number {
+  return Math.max(28, Math.round(ms / Math.max(1, speed)))
+}
+
+/** 终态棋盘 HTML：回放播完后用于重建战场，避免重绘后战场空白 */
+export function battleBoardHtml(result: BattleResult): { allies: string; enemies: string } {
+  const last = result.log[result.log.length - 1]
+  if (!last) return { allies: '', enemies: '' }
+  return {
+    allies: last.allies.map((u) => fighterHtml(u, 'ally')).join(''),
+    enemies: last.enemies.map((u) => fighterHtml(u, 'enemy')).join(''),
   }
 }
 
-function pace(ms: number): number {
-  const n = Number(document.querySelector('#battle-pace')?.getAttribute('data-pace') || '1')
-  return Math.max(28, Math.round(ms / Math.max(1, n)))
-}
-
-function showReport(root: HTMLElement, result: BattleResult): void {
-  const box = root.querySelector<HTMLElement>('#battle-report')
-  if (!box) return
+/** 终态战报 HTML */
+export function battleReportHtml(result: BattleResult): string {
   const rows = result.report.filter((r) => r.side === 'ally')
-  box.hidden = false
-  box.innerHTML =
+  return (
     `<h4>${result.win ? '胜利' : '战败'} · 我方战报</h4>` +
     rows
       .map((r) => {
@@ -88,6 +116,14 @@ function showReport(root: HTMLElement, result: BattleResult): void {
         return `<div class="rep-row"><b>${r.name}</b><span>输出 ${r.dealt}</span><span>治疗 ${r.healed}</span><span>承伤 ${r.taken}</span><em>${expText}</em></div>`
       })
       .join('')
+  )
+}
+
+function showReport(root: HTMLElement, result: BattleResult): void {
+  const box = root.querySelector<HTMLElement>('#battle-report')
+  if (!box) return
+  box.hidden = false
+  box.innerHTML = battleReportHtml(result)
 }
 
 function syncUnits(field: HTMLElement, allies: HpSnap[], enemies: HpSnap[]): void {
@@ -99,8 +135,8 @@ function syncUnits(field: HTMLElement, allies: HpSnap[], enemies: HpSnap[]): voi
     field.dataset.ids = ids
     allyBoard.querySelectorAll('.fighter').forEach((n) => n.remove())
     enemyBoard.querySelectorAll('.fighter').forEach((n) => n.remove())
-    allyBoard.insertAdjacentHTML('beforeend', allies.map(fighterHtml).join(''))
-    enemyBoard.insertAdjacentHTML('beforeend', enemies.map(fighterHtml).join(''))
+    allyBoard.insertAdjacentHTML('beforeend', allies.map((u) => fighterHtml(u)).join(''))
+    enemyBoard.insertAdjacentHTML('beforeend', enemies.map((u) => fighterHtml(u)).join(''))
     placeFormation(field, allies, 'ally')
     placeFormation(field, enemies, 'enemy')
   }
@@ -114,16 +150,28 @@ function syncUnits(field: HTMLElement, allies: HpSnap[], enemies: HpSnap[]): voi
   }
 }
 
-function fighterHtml(u: HpSnap): string {
+function fighterHtml(u: HpSnap, side?: 'ally' | 'enemy'): string {
   const hero = HERO_MAP[u.heroId]
   const pct = Math.max(0, Math.round((u.hp / u.maxHp) * 100))
   const body = hero ? battleSprite(hero) : ''
   const mark = hero ? attackLineMark(hero.id) : ''
-  return `<div class="fighter ${u.side} ${u.hp <= 0 ? 'dead' : ''}" data-uid="${u.uid}">
+  // 终态重建时直接写内联站位，避免阵型塌到左上角
+  const style = side ? ` style="${formationStyle(u, side)}"` : ''
+  const front = u.slot < 3
+  const pos = side ? ` ${front ? 'front' : 'back'}` : ''
+  return `<div class="fighter ${u.side}${pos} ${u.hp <= 0 ? 'dead' : ''}" data-uid="${u.uid}"${style}>
     <div class="fbody">${body}${hero ? weaponHtml(u.heroId) : ''}</div>
     <div class="fhp"><i style="width:${pct}%"></i></div>
     <div class="fname">${u.name}${mark ? `<i class="line-mark">${mark}</i>` : ''}</div>
   </div>`
+}
+
+/** 站位计算：前排在己方靠前（ally 靠右列，enemy 靠左列），后排靠后 */
+function formationStyle(u: HpSnap, side: 'ally' | 'enemy'): string {
+  const file = (u.slot % 3) + 1
+  const front = u.slot < 3
+  const col = side === 'ally' ? (front ? 2 : 1) : front ? 1 : 2
+  return `grid-column:${col};grid-row:${file}`
 }
 
 function placeFormation(field: HTMLElement, units: HpSnap[], side: 'ally' | 'enemy'): void {
@@ -146,6 +194,7 @@ function rush(actor: HTMLElement, foe: HTMLElement | undefined, kind: 'strike' |
   actor.style.setProperty('--lx', `${motion.x}px`)
   actor.style.setProperty('--ly', `${motion.y}px`)
   actor.style.setProperty('--lean', `${motion.lean}deg`)
+  actor.style.setProperty('--wind', `${motion.wind}deg`)
   actor.classList.remove('striking')
   void actor.offsetWidth
   actor.classList.add('striking')
@@ -156,6 +205,12 @@ function rush(actor: HTMLElement, foe: HTMLElement | undefined, kind: 'strike' |
     foe.classList.remove('hitreact')
     void foe.offsetWidth
     foe.classList.add('hitreact')
+    // 起势到命中之间留出剑光弧的挥出时机
+    window.setTimeout(() => {
+      if (!actor.isConnected) return
+      spawnArc(actor, foe, sign)
+      spawnAfterimage(actor)
+    }, Math.round(dur * 0.34))
   }
   window.setTimeout(() => {
     if (actor.isConnected) actor.classList.remove('striking')
@@ -163,10 +218,43 @@ function rush(actor: HTMLElement, foe: HTMLElement | undefined, kind: 'strike' |
   }, dur)
 }
 
-function measureLunge(actor: HTMLElement, foe: HTMLElement | undefined, kind: 'strike' | 'step'): { x: number; y: number; lean: number } {
+/** 剑光弧：命中瞬间的月牙斩击，跟随攻击者朝向 */
+function spawnArc(actor: HTMLElement, foe: HTMLElement, dir: number): void {
+  const stage = actor.closest<HTMLElement>('#battle-stage') ?? actor.parentElement
+  if (!stage) return
+  const host = stage.getBoundingClientRect()
+  const rect = foe.getBoundingClientRect()
+  const arc = document.createElement('div')
+  arc.className = `blade-arc ${dir >= 0 ? 'right' : 'left'}`
+  arc.style.left = `${rect.left - host.left + rect.width / 2}px`
+  arc.style.top = `${rect.top - host.top + rect.height * 0.4}px`
+  stage.appendChild(arc)
+  window.setTimeout(() => arc.remove(), 520)
+}
+
+/** 冲刺残影：沿运动方向留下淡出拖影，强化速度感 */
+function spawnAfterimage(actor: HTMLElement): void {
+  const stage = actor.closest<HTMLElement>('#battle-stage')
+  const sprite = actor.querySelector<HTMLImageElement>('.battle-sprite')
+  if (!stage || !sprite?.src) return
+  const host = stage.getBoundingClientRect()
+  const rect = actor.getBoundingClientRect()
+  const dir = actor.classList.contains('ally') ? 1 : -1
+  const ghost = document.createElement('img')
+  ghost.className = `fighter-ghost ${dir >= 0 ? 'right' : 'left'}`
+  ghost.src = sprite.src
+  ghost.alt = ''
+  ghost.style.left = `${rect.left - host.left + rect.width / 2}px`
+  ghost.style.top = `${rect.top - host.top + rect.height * 0.5}px`
+  ghost.style.height = `${rect.height * 0.9}px`
+  stage.appendChild(ghost)
+  window.setTimeout(() => ghost.remove(), 420)
+}
+
+function measureLunge(actor: HTMLElement, foe: HTMLElement | undefined, kind: 'strike' | 'step'): { x: number; y: number; lean: number; wind: number } {
   const dir = actor.classList.contains('ally') ? 1 : -1
   if (!foe || kind === 'step') {
-    return { x: dir * (kind === 'step' ? 72 : 28), y: -8, lean: dir * 10 }
+    return { x: dir * (kind === 'step' ? 72 : 28), y: -8, lean: dir * 10, wind: dir * 16 }
   }
   const a = actor.getBoundingClientRect()
   const b = foe.getBoundingClientRect()
@@ -182,7 +270,7 @@ function measureLunge(actor: HTMLElement, foe: HTMLElement | undefined, kind: 's
   dx = Math.round(dx * scale)
   dy = Math.round(dy * scale)
   const lean = Math.max(-16, Math.min(16, dir * 12))
-  return { x: dx, y: dy, lean }
+  return { x: dx, y: dy, lean, wind: dir * 20 }
 }
 
 function applyEvent(
@@ -192,6 +280,7 @@ function applyEvent(
   skillFx: HTMLElement | null,
   clashFx: HTMLElement | null,
   ev: BattleEvent,
+  speed = 1,
 ): void {
   syncUnits(field, ev.allies, ev.enemies)
 
@@ -212,7 +301,7 @@ function applyEvent(
     const foe = targets[0]
     const healish = ev.fx === 'heal' || ev.fx === 'heal-all' || ev.fx === 'regen' || ev.fx === 'regen-all'
     const wave = !healish && (targets.length > 1 || ev.fx === 'aoe' || ev.fx === 'burn' || ev.fx === 'poison')
-    const dur = pace(healish ? 520 : wave ? 680 : 860)
+    const dur = pace(healish ? 520 : wave ? 680 : 860, speed)
     if (healish) {
       actor.style.setProperty('--strike', `${dur}ms`)
       replay(actor, 'casting')
@@ -221,11 +310,15 @@ function applyEvent(
       if (!stage.isConnected) return
       const marks = targets.length ? targets : actor ? [actor] : []
       castFx(stage, ev.fx || 'strike', marks, actor)
+      spawnMechanicFx(stage, ev.fx || '', marks)
       for (const t of marks) {
         replay(t, 'struck')
         const per = ev.value ? Math.round(ev.value / Math.max(targets.length, 1)) : 0
         if (per) floatNum(t, `-${per}`, 'hurt')
       }
+      // 命中顿帧：短暂定格强化打击感
+      if (!healish) stage.classList.add('hitstop')
+      window.setTimeout(() => stage.classList.remove('hitstop'), 90)
       stage.classList.remove('shake')
       void stage.offsetWidth
       stage.classList.add('shake')
@@ -257,6 +350,52 @@ function applyEvent(
     skillFx.textContent = name
     skillFx.className = `skill-fx show ${ev.fx || ev.kind}`
     window.setTimeout(() => skillFx.classList.remove('show'), ev.kind === 'combo' ? 1200 : 1100)
+  }
+
+  // 合击横幅
+  if (ev.kind === 'combo' && stage) {
+    const banner = document.createElement('div')
+    banner.className = 'combo-banner'
+    banner.textContent = ev.comboName ?? '羁绊合击'
+    stage.appendChild(banner)
+    window.setTimeout(() => banner.remove(), 1200)
+  }
+}
+
+/** 新机制效果的战场标记 */
+function spawnMechanicFx(stage: HTMLElement, fx: string, targets: HTMLElement[]): void {
+  for (const t of targets) {
+    if (fx === 'shield') {
+      const ring = document.createElement('div')
+      ring.className = 'mechanic-fx shield'
+      pinFx(stage, t, ring, 0.45)
+      window.setTimeout(() => ring.remove(), 900)
+    } else if (fx === 'mark') {
+      const mark = document.createElement('div')
+      mark.className = 'mechanic-fx mark'
+      pinFx(stage, t, mark, 0.3)
+      window.setTimeout(() => mark.remove(), 1100)
+    } else if (fx === 'taunt' || fx === 'weaken' || fx === 'pierce' || fx === 'sunder') {
+      const debuff = document.createElement('div')
+      debuff.className = `mechanic-fx debuff ${fx}`
+      pinFx(stage, t, debuff, 0.3)
+      window.setTimeout(() => debuff.remove(), 1000)
+    } else if (fx === 'chain') {
+      const spark = document.createElement('div')
+      spark.className = 'mechanic-fx chain'
+      pinFx(stage, t, spark, 0.4)
+      window.setTimeout(() => spark.remove(), 700)
+    } else if (fx === 'absorb' || fx === 'drain') {
+      const vamp = document.createElement('div')
+      vamp.className = 'mechanic-fx absorb'
+      pinFx(stage, t, vamp, 0.4)
+      window.setTimeout(() => vamp.remove(), 800)
+    } else if (fx === 'haste' || fx === 'cleanse') {
+      const buff = document.createElement('div')
+      buff.className = `mechanic-fx buff ${fx}`
+      pinFx(stage, t, buff, 0.4)
+      window.setTimeout(() => buff.remove(), 900)
+    }
   }
 }
 

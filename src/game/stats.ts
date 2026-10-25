@@ -46,11 +46,12 @@ export function calcStats(owned: OwnedHero, bag: OwnedEquip[] = []) {
   const rm = rarityMult(def.rarity)
   const bt = 1 + (owned.breakthrough ?? 0) * 0.08
   const aw = 1 + (owned.awaken ?? 0) * 0.05
+  const god = owned.divine ? DIVINE_MULT : 1
   const eq = calcEquipBonus(owned, bag)
-  let atk = Math.round(def.atk * grow * rm * bt * aw + eq.atk)
-  let hp = Math.round(def.hp * grow * rm * bt * aw + eq.hp)
-  let defense = Math.round(def.def * grow * rm * bt * aw + eq.def)
-  for (const sk of unlockedSkills(owned.heroId, owned.breakthrough ?? 0)) {
+  let atk = Math.round(def.atk * grow * rm * bt * aw * god + eq.atk)
+  let hp = Math.round(def.hp * grow * rm * bt * aw * god + eq.hp)
+  let defense = Math.round(def.def * grow * rm * bt * aw * god + eq.def)
+  for (const sk of unlockedSkills(owned.heroId, owned.breakthrough ?? 0, owned.divine ?? false, owned.awaken ?? 0)) {
     if (sk.kind !== 'passive') continue
     if (sk.fx === 'passive-atk') atk = Math.round(atk * (1 + sk.power))
     if (sk.fx === 'passive-hp' || sk.fx === 'regen' || sk.fx === 'regen-all') hp = Math.round(hp * (1 + sk.power))
@@ -171,9 +172,31 @@ export function autoLineup(save: SaveData): (string | null)[] {
   return slots
 }
 
-/** 突破 0 时上限 20 级，每突破一阶上限 +10 */
+export const MAX_BREAKTHROUGH = 5
+/** 神将属性倍率 */
+export const DIVINE_MULT = 1.35
+
+export function isMaxedHero(owned: OwnedHero): boolean {
+  return (owned.breakthrough ?? 0) >= MAX_BREAKTHROUGH && owned.level >= levelCap(MAX_BREAKTHROUGH)
+}
+
+/** 找同名、同样满级满突破、且尚未神合的第二张武将 */
+export function findDivinePartner(owned: OwnedHero, list: OwnedHero[]): OwnedHero | null {
+  if (owned.divine || !isMaxedHero(owned)) return null
+  return (
+    list.find(
+      (o) =>
+        o.uid !== owned.uid &&
+        o.heroId === owned.heroId &&
+        !o.divine &&
+        isMaxedHero(o),
+    ) ?? null
+  )
+}
+
+/** 突破 0 时上限 20 级，每突破一阶上限 +20；突破满 +5 为 120 级 */
 export function levelCap(breakthrough: number): number {
-  return 20 + Math.max(0, breakthrough) * 10
+  return 20 + Math.max(0, breakthrough) * 20
 }
 
 export function levelUpCost(level: number): number {
@@ -192,21 +215,27 @@ export function expToNextPlayer(level: number): number {
   return 80 + level * 40
 }
 
-export function breakthroughCost(rarity: string, current: number): { shards: number; gold: number } {
-  if (current <= 0) return { shards: 0, gold: 0 }
-  const base = rarity === 'SSR' ? 20 : rarity === 'SR' ? 12 : 8
-  return { shards: base + current * 4, gold: 200 + current * 180 }
+/** 突破消耗银两（每阶 +180）；另需同名武将 1 名作为突破材料，不再消耗碎片 */
+export function breakthroughCost(current: number): number {
+  return 200 + Math.max(0, current) * 180
 }
 
-export function awakenCost(star: number): { stones: number; shards: number; gold: number } {
+/** 突破/觉醒的同名武将材料：非自身、非神将、未上阵，且必须是 1 级 */
+export function fodderCandidates(hero: OwnedHero, owned: OwnedHero[], team: (string | null)[]): OwnedHero[] {
+  return owned
+    .filter((o) => o.uid !== hero.uid && o.heroId === hero.heroId && !o.divine && o.level === 1 && !team.includes(o.uid))
+    .sort((a, b) => (a.breakthrough ?? 0) - (b.breakthrough ?? 0))
+}
+
+/** 觉醒消耗：觉醒丹 + 银两 + 1 名 1 级同名武将 */
+export function awakenCost(star: number): { stones: number; gold: number } {
   return {
     stones: 5 + star * 5,
-    shards: 3 + star * 2,
     gold: 300 + star * 250,
   }
 }
 
-/** 升级每级 +18%，锻造每阶再 +6%，极品、良品另有品质系数。界面和战斗用同一套数。 */
+/** 升级每级 +18%，锻造每阶再 +15%（满锻 8 阶共 +120%），极品、良品另有品质系数。界面和战斗用同一套数。 */
 export function equipBonus(def: { atk: number; hp: number; def: number; rarity?: string }, level: number, forge = 0) {
   const scale = equipScale(level, forge, def.rarity)
   return {
@@ -234,17 +263,17 @@ export function exclusiveBonus(
 
 function equipScale(level: number, forge = 0, rarity?: string) {
   const grow = 1 + Math.max(0, level - 1) * 0.18
-  const smith = 1 + Math.max(0, forge) * 0.06
+  const smith = 1 + Math.max(0, forge) * 0.15
   const quality = rarity === 'SSR' ? 1.12 : rarity === 'SR' ? 1.06 : 1
   return grow * smith * quality
 }
 
-/** 锻造 0 阶时只能升到 +20，每锻造一阶，等级上限 +4。满锻 20 阶上限 +100。 */
+/** 锻造 0 阶时只能升到 +20，每锻造一阶，等级上限 +10。满锻 8 阶上限 +100。 */
 export function equipLevelCap(forge: number): number {
-  return 20 + Math.max(0, forge) * 4
+  return 20 + Math.max(0, forge) * 10
 }
 
-export const SMITH_CAP = 20
+export const SMITH_CAP = 8
 export const UPGRADE_CAP = equipLevelCap(SMITH_CAP)
 export const FORGE_CAP = UPGRADE_CAP
 
@@ -257,9 +286,9 @@ export function upgradeCost(level: number): { gold: number; iron: number } {
 
 export function smithCost(forge: number): { gold: number; stones: number; iron: number } {
   return {
-    gold: 180 + forge * 120,
-    stones: 2 + forge,
-    iron: 2 + Math.floor(forge / 2),
+    gold: 400 + forge * 800,
+    stones: 4 + forge * 8,
+    iron: 2 + forge * 4,
   }
 }
 

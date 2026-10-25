@@ -4,7 +4,7 @@
    全部声音用振荡器 + ADSR 包络合成。
    ═══════════════════════════════════════════════════════ */
 
-type SfxName = 'portal-charge' | 'portal-burst' | 'card-flip' | 'ssr-bell' | 'sr-chime' | 'r-pop'
+type SfxName = 'portal-charge' | 'portal-burst' | 'card-flip' | 'ssr-bell' | 'sr-chime' | 'r-pop' | 'divine-merge'
 
 let ctx: AudioContext | null = null
 let masterGain: GainNode | null = null
@@ -184,6 +184,28 @@ export function playSfx(name: SfxName): void {
       // R 短促：pop
       tone(t, 440, 'sine', 0.12, 140, { attack: 0.003, decay: 0.06, sustain: 0.1, release: 0.08, slideTo: 320 })
       noiseBurst(t, 40, 0.12, 3400, 1.5)
+      break
+    }
+    case 'divine-merge': {
+      // 神合：低频上冲 + 五度钟声 + 金属流沙
+      tone(t, 110, 'sawtooth', 0.1, 900, {
+        attack: 0.05, decay: 0.3, sustain: 0.55, release: 0.3,
+        slideTo: 440, filterFreq: 900,
+      })
+      noiseBurst(t, 320, 0.4, 3200, 1.1)
+      const chord = [392.0, 523.25, 659.25, 783.99]
+      chord.forEach((f, i) => {
+        tone(t + 0.06 + i * 0.07, f, 'triangle', 0.16, 1500, {
+          attack: 0.01, decay: 0.28, sustain: 0.68, release: 0.9, filterFreq: 6800,
+        })
+        tone(t + 0.06 + i * 0.07, f * 2, 'sine', 0.05, 1300, {
+          attack: 0.01, decay: 0.25, sustain: 0.6, release: 0.85, filterFreq: 7600,
+        })
+      })
+      tone(t, 52, 'sine', 0.3, 620, {
+        attack: 0.004, decay: 0.26, sustain: 0.42, release: 0.45, filterFreq: 560,
+      })
+      noiseBurst(t + 0.2, 220, 0.24, 5600, 3.4)
       break
     }
   }

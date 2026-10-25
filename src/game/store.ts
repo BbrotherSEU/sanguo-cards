@@ -1,8 +1,8 @@
 import { EQUIP_MAP, randomEquipDrop } from '../data/equips'
 import { HERO_MAP } from '../data/heroes'
-import { heroSkills } from '../data/skills'
-import { STAGES } from '../data/stages'
-import type { ArenaBot, EquipSlot, Faction, OwnedHero, SaveData, Screen } from '../data/types'
+import { heroSkills, divineSkill } from '../data/skills'
+import { STAGES, DIFFICULTIES, prevDifficulty, stageFor } from '../data/stages'
+import type { ArenaBot, Difficulty, EquipSlot, Faction, OwnedHero, SaveData, Screen } from '../data/types'
 import { arenaReward, generateOpponents } from './arena'
 import { simulateBattle, simulateStageBattle, type BattleResult, type BattleUnit } from './battle'
 import { applyDailyGrant, rollDaily } from './daily'
@@ -15,6 +15,7 @@ import {
   awakenCost,
   battleHeroExp,
   breakthroughCost,
+  fodderCandidates,
   equipBonus,
   expForLevel,
   expToNextPlayer,
@@ -27,12 +28,15 @@ import {
   soulCost,
   soulFromHero,
   teamPower,
+  findDivinePartner,
+  isMaxedHero,
+  MAX_BREAKTHROUGH,
 } from './stats'
 
 type Listener = () => void
 
 export type GachaPhase = 'idle' | 'playing' | 'result'
-export type HeroFx = { uid: string; kind: 'level' | 'breakthrough'; text: string }
+export type HeroFx = { uid: string; kind: 'level' | 'breakthrough' | 'divine'; text: string }
 
 export class Store {
   save: SaveData
@@ -43,10 +47,12 @@ export class Store {
   lastBattle: BattleResult | null = null
   arenaList: ArenaBot[] = []
   battleMode: 'stage' | 'arena' = 'stage'
-  pending: { kind: 'stage'; stageId: number } | { kind: 'arena'; botId: string } | null = null
+  pending: { kind: 'stage'; stageId: number; diff: Difficulty } | { kind: 'arena'; botId: string } | null = null
   gachaPhase: GachaPhase = 'idle'
   heroFx: HeroFx | null = null
   toast = ''
+  /** 当前选择的征战难度（不入存档，仅为界面状态） */
+  difficulty: Difficulty = 'normal'
   /** 自动推图中：胜利后自动挑战下一关 */
   autoPushing = false
   private autoTimer = 0
@@ -72,12 +78,9 @@ export class Store {
     this.emit()
   }
 
+  /** 清除提示文案（不触发重绘，避免打断战斗回放） */
   clearToast(): void {
-    if (!this.toast) return
     this.toast = ''
-    // 抽卡动画中不要整页重绘，否则会打断过场
-    if (this.gachaPhase === 'playing') return
-    for (const fn of this.listeners) fn()
   }
 
   adoptSave(raw: SaveData): boolean {
@@ -105,7 +108,7 @@ export class Store {
       this.emit('已停止自动推图')
       return
     }
-    const nextId = this.save.stageCleared + 1
+    const nextId = this.progressFor(this.difficulty) + 1
     if (!STAGES.some((s) => s.id === nextId)) {
       this.emit('已通关全部关卡')
       return
@@ -115,7 +118,7 @@ export class Store {
       return
     }
     this.autoPushing = true
-    this.challenge(nextId)
+    this.challenge(nextId, this.difficulty)
   }
 
   private stopAutoPush(): void {
@@ -128,19 +131,52 @@ export class Store {
 
   /** 战斗回放播完（或点跳过）后由渲染层回调，驱动自动推图连战 */
   onBattlePlaybackDone(): void {
-    if (!this.autoPushing || this.screen !== 'battle' || !this.lastBattle?.win) return
-    const nextId = this.save.stageCleared + 1
+    if (!this.autoPushing || this.screen !== 'battle') return
+    if (!this.lastBattle?.win) {
+      // 战败：回放播完后再停止推图，让战斗页保留推图状态直到最后一刻
+      this.stopAutoPush()
+      this.emit('自动推图已停止')
+      return
+    }
+    const nextId = this.progressFor(this.difficulty) + 1
     if (!STAGES.some((s) => s.id === nextId)) {
       this.stopAutoPush()
       this.emit('已通关全部关卡！')
       return
     }
     if (this.autoTimer) return
-    // 短暂停留展示战报，然后自动进入下一关
+    // 短暂停留展示战报，然后自动进入下一关；停留时长随推图速度缩短
+    const hold = Math.max(120, Math.round(800 / this.pushSpeed()))
     this.autoTimer = window.setTimeout(() => {
       this.autoTimer = 0
-      if (this.autoPushing) this.challenge(nextId)
-    }, 800)
+      if (this.autoPushing) this.challenge(nextId, this.difficulty)
+    }, hold)
+  }
+
+  /** 手动战斗播放速度倍率（静默保存，不触发重绘以免打断战斗回放） */
+  setBattleSpeed(n: number): void {
+    const v = n === 2 || n === 4 || n === 8 ? n : 1
+    if (this.save.battleSpeed === v) return
+    this.save.battleSpeed = v
+    writeSave(this.save)
+  }
+
+  battleSpeed(): number {
+    const v = this.save.battleSpeed
+    return v === 2 || v === 4 || v === 8 ? v : 1
+  }
+
+  /** 自动推图播放速度倍率（静默保存） */
+  setPushSpeed(n: number): void {
+    const v = n === 1 || n === 2 || n === 4 || n === 8 ? n : 4
+    if (this.save.pushSpeed === v) return
+    this.save.pushSpeed = v
+    writeSave(this.save)
+  }
+
+  pushSpeed(): number {
+    const v = this.save.pushSpeed
+    return v === 1 || v === 2 || v === 4 || v === 8 ? v : 4
   }
 
   buyShop(offerId: string): void {
@@ -205,6 +241,41 @@ export class Store {
 
   power(): number {
     return teamPower(this.save)
+  }
+
+  /** 某难度已通关的最大关卡 */
+  progressFor(diff: Difficulty): number {
+    switch (diff) {
+      case 'hard':
+        return this.save.stageHardCleared
+      case 'hero':
+        return this.save.stageHeroCleared
+      case 'epic':
+        return this.save.stageEpicCleared
+      default:
+        return this.save.stageCleared
+    }
+  }
+
+  private setProgress(diff: Difficulty, stageId: number): void {
+    if (diff === 'hard') {
+      if (stageId > this.save.stageHardCleared) this.save.stageHardCleared = stageId
+    } else if (diff === 'hero') {
+      if (stageId > this.save.stageHeroCleared) this.save.stageHeroCleared = stageId
+    } else if (diff === 'epic') {
+      if (stageId > this.save.stageEpicCleared) this.save.stageEpicCleared = stageId
+    } else if (stageId > this.save.stageCleared) {
+      this.save.stageCleared = stageId
+    }
+  }
+
+  /** 该难度下这一关是否已解锁；返回空串表示可挑战 */
+  unlockReason(stageId: number, diff: Difficulty): string {
+    const prev = prevDifficulty(diff)
+    if (prev && this.progressFor(prev) < stageId) {
+      return `需先通关「${DIFFICULTIES[prev].name}」第 ${stageId} 关`
+    }
+    return ''
   }
 
   pull(count: 1 | 10, faction: Faction | null = null): void {
@@ -305,17 +376,20 @@ export class Store {
       return
     }
     const def = HERO_MAP[hero.heroId]
-    const cost = breakthroughCost(def.rarity, hero.breakthrough)
-    if (hero.shards < cost.shards) {
-      this.emit(`碎片不足（需${cost.shards}）`)
+    const cost = breakthroughCost(hero.breakthrough)
+    const fodders = fodderCandidates(hero, this.save.owned, this.save.team)
+    if (fodders.length < 1) {
+      this.emit('突破需要 1 名 1 级同名武将（未上阵、非神将）')
       return
     }
-    if (this.save.gold < cost.gold) {
+    if (this.save.gold < cost) {
       this.emit('银两不足')
       return
     }
-    hero.shards -= cost.shards
-    this.save.gold -= cost.gold
+    this.save.gold -= cost
+    // 消耗等级最低的同名武将作为突破材料
+    const fodder = fodders[0]
+    this.save.owned = this.save.owned.filter((o) => o.uid !== fodder.uid)
     hero.breakthrough += 1
     const unlocked = heroSkills(def.id).find((s) => s.unlockAt - 1 === hero.breakthrough)
     const tip = unlocked ? `解锁${unlocked.kind === 'active' ? '主动' : '被动'}「${unlocked.name}」` : '属性提升'
@@ -327,6 +401,45 @@ export class Store {
     if (!this.heroFx) return
     this.heroFx = null
     for (const fn of this.listeners) fn()
+  }
+
+  /** 当前武将可用来神合的同名满级满突破武将 */
+  divinePartner(uid: string): OwnedHero | null {
+    const hero = this.save.owned.find((o) => o.uid === uid)
+    return hero ? findDivinePartner(hero, this.save.owned) : null
+  }
+
+  /** 两张同名满级满突破武将合成神将：等级与突破归零重新历练，属性加成保留并领悟神技 */
+  mergeDivine(uid: string): void {
+    const hero = this.save.owned.find((o) => o.uid === uid)
+    if (!hero) return
+    if (hero.divine) {
+      this.emit('该武将已是神将')
+      return
+    }
+    if (!isMaxedHero(hero)) {
+      this.emit(`需满级 Lv.${levelCap(MAX_BREAKTHROUGH)} 且突破 +${MAX_BREAKTHROUGH} 才能神合`)
+      return
+    }
+    const partner = findDivinePartner(hero, this.save.owned)
+    if (!partner) {
+      this.emit('需要另一张同名满级满突破武将')
+      return
+    }
+    // 伙伴身上的装备空位转移给主将，避免跟着消失
+    for (const slot of Object.keys(partner.gear ?? {}) as EquipSlot[]) {
+      if (!hero.gear[slot] && partner.gear[slot]) hero.gear[slot] = partner.gear[slot]
+    }
+    this.save.owned = this.save.owned.filter((o) => o.uid !== partner.uid)
+    this.save.team = this.save.team.map((id) => (id === partner.uid ? null : id))
+    if (this.save.selectedHeroUid === partner.uid) this.save.selectedHeroUid = hero.uid
+    hero.divine = true
+    hero.level = 1
+    hero.breakthrough = 0
+    hero.exp = 0
+    this.heroFx = { uid, kind: 'divine', text: '神将' }
+    const god = divineSkill(hero.heroId)
+    this.emit(`${HERO_MAP[hero.heroId].name} 神合成功，晋升神将！等级归零重新历练${god ? `，领悟神技「${god.name}」` : ''}`)
   }
 
   awaken(uid: string): void {
@@ -341,19 +454,22 @@ export class Store {
       this.emit('觉醒丹不足')
       return
     }
-    if (hero.shards < cost.shards) {
-      this.emit(`碎片不足（需${cost.shards}）`)
-      return
-    }
     if (this.save.gold < cost.gold) {
       this.emit('银两不足')
       return
     }
+    const fodders = fodderCandidates(hero, this.save.owned, this.save.team)
+    if (!fodders.length) {
+      this.emit('觉醒需要 1 名 1 级同名武将（未上阵、非神将）')
+      return
+    }
+    // 消耗 1 名 1 级同名武将作为觉醒材料
+    const fodder = fodders[0]
+    this.save.owned = this.save.owned.filter((o) => o.uid !== fodder.uid)
     this.save.awakenStone -= cost.stones
-    hero.shards -= cost.shards
     this.save.gold -= cost.gold
     hero.awaken += 1
-    this.emit(`${HERO_MAP[hero.heroId].name} 觉醒 ${'★'.repeat(hero.awaken)}`)
+    this.emit(`${HERO_MAP[hero.heroId].name} 觉醒 ${'★'.repeat(hero.awaken)}，消耗 1 名 1 级同名武将`)
   }
 
   wearEquip(heroUid: string, equipUid: string): void {
@@ -474,16 +590,21 @@ export class Store {
     this.emit('领取今日俸禄')
   }
 
-  prepareStage(stageId: number): void {
+  prepareStage(stageId: number, diff: Difficulty = this.difficulty): void {
     rollDaily(this.save)
-    const stage = STAGES.find((s) => s.id === stageId)
+    const stage = stageFor(stageId, diff)
     if (!stage) return
-    if (stageId <= this.save.stageCleared && this.save.sweepsLeft <= 0) {
+    if (stageId <= this.progressFor(diff) && this.save.sweepsLeft <= 0) {
       this.emit('今日扫荡次数已用完')
       return
     }
-    if (stageId > this.save.stageCleared + 1) {
+    if (stageId > this.progressFor(diff) + 1) {
       this.emit('请先通关前置关卡')
+      return
+    }
+    const reason = this.unlockReason(stageId, diff)
+    if (reason) {
+      this.emit(reason)
       return
     }
     if (this.battleRoster().length < 1) {
@@ -491,7 +612,7 @@ export class Store {
       return
     }
     this.battleMode = 'stage'
-    this.pending = { kind: 'stage', stageId }
+    this.pending = { kind: 'stage', stageId, diff }
     this.screen = 'prep'
     this.emit()
   }
@@ -516,21 +637,27 @@ export class Store {
     rollDaily(this.save)
     const pending = this.pending
     if (!pending) return
-    if (pending.kind === 'stage' && pending.stageId <= this.save.stageCleared && this.save.sweepsLeft <= 0) {
+    if (pending.kind === 'stage' && pending.stageId <= this.progressFor(pending.diff) && this.save.sweepsLeft <= 0) {
       this.emit('今日扫荡次数已用完')
       return
     }
     this.pending = null
-    if (pending.kind === 'stage') this.challenge(pending.stageId)
+    if (pending.kind === 'stage') this.challenge(pending.stageId, pending.diff)
     else this.fightArena(pending.botId)
   }
 
-  challenge(stageId: number): void {
-    const stage = STAGES.find((s) => s.id === stageId)
+  challenge(stageId: number, diff: Difficulty = this.difficulty): void {
+    const stage = stageFor(stageId, diff)
     if (!stage) return
-    if (stageId > this.save.stageCleared + 1) {
+    if (stageId > this.progressFor(diff) + 1) {
       this.stopAutoPush()
       this.emit('请先通关前置关卡')
+      return
+    }
+    const reason = this.unlockReason(stageId, diff)
+    if (reason) {
+      this.stopAutoPush()
+      this.emit(reason)
       return
     }
     const team = this.battleRoster()
@@ -547,8 +674,8 @@ export class Store {
     this.screen = 'battle'
 
     if (result.win) {
-      const sweep = stageId <= this.save.stageCleared
-      const sealsFull = stageId % 5 === 0 ? 18 : 6
+      const sweep = stageId <= this.progressFor(diff)
+      const sealsFull = Math.round((stageId % 5 === 0 ? 18 : 6) * DIFFICULTIES[diff].sealMult)
       const gold = sweep ? Math.round(stage.rewardGold / 2) : stage.rewardGold
       const jade = sweep ? Math.max(1, Math.round(stage.rewardJade / 2)) : stage.rewardJade
       const seals = sweep ? Math.max(2, Math.round(sealsFull / 2)) : sealsFull
@@ -559,7 +686,7 @@ export class Store {
       this.save.awakenStone += sweep ? (stageId % 3 === 0 ? 1 : 0) : stageId % 3 === 0 ? 2 : 1
       this.save.forgeStone += sweep ? (stageId % 2 === 0 ? 1 : 0) : 1
       if (sweep) this.save.sweepsLeft = Math.max(0, this.save.sweepsLeft - 1)
-      if (stageId > this.save.stageCleared) this.save.stageCleared = stageId
+      this.setProgress(diff, stageId)
       const drop = sweep ? null : randomEquipDrop(stageId)
       let dropMsg = ''
       if (drop) {
@@ -573,18 +700,15 @@ export class Store {
         this.save.jade += 10
         this.save.arenaTickets = Math.min(12, this.save.arenaTickets + 1)
       }
+      const tag = diff === 'normal' ? '' : `（${DIFFICULTIES[diff].name}）`
       this.emit(
         sweep
-          ? `扫荡「${stage.name}」+${gold}银两 · +${seals}阵符，今日还剩 ${this.save.sweepsLeft} 次${dropMsg}`
-          : `通关「${stage.name}」！+${gold}银两 · +${seals}阵符${dropMsg}`,
+          ? `扫荡「${stage.name}」${tag}+${gold}银两 · +${seals}阵符，今日还剩 ${this.save.sweepsLeft} 次${dropMsg}`
+          : `通关「${stage.name}」${tag}！+${gold}银两 · +${seals}阵符${dropMsg}`,
       )
     } else {
-      if (this.autoPushing) {
-        this.stopAutoPush()
-        this.emit(`挑战「${stage.name}」失败，自动推图停止`)
-      } else {
-        this.emit(`挑战「${stage.name}」失败`)
-      }
+      // 推图失败时先保留推图状态，等战斗回放播完再由 onBattlePlaybackDone 停止
+      this.emit(`挑战「${stage.name}」失败${this.autoPushing ? '，自动推图即将停止' : ''}`)
     }
   }
 
@@ -656,6 +780,10 @@ export class Store {
     }
     const hero = this.save.owned.find((o) => o.uid === uid)
     if (!hero) return
+    if (hero.divine) {
+      this.emit('神将不可分解')
+      return
+    }
     const def = HERO_MAP[hero.heroId]
     const gain = soulFromHero(def.rarity, hero.shards)
     this.save.owned = this.save.owned.filter((o) => o.uid !== uid)
@@ -666,6 +794,30 @@ export class Store {
       this.screen = 'roster'
     }
     this.emit(`${def.name} 已分解，获得 ${gain} 将魂`)
+  }
+
+  /** 批量分解：仅允许未上阵且非神将的武将 */
+  decomposeMany(uids: string[]): void {
+    const picks = new Set(uids)
+    const onTeam = new Set(this.save.team.filter((id): id is string => !!id))
+    const targets = this.save.owned.filter((o) => picks.has(o.uid) && !o.divine && !onTeam.has(o.uid))
+    if (!targets.length) {
+      this.emit('没有可分解的武将')
+      return
+    }
+    if (this.save.owned.length - targets.length < 1) {
+      this.emit('至少保留一名武将')
+      return
+    }
+    const drop = new Set(targets.map((o) => o.uid))
+    let gain = 0
+    for (const o of targets) gain += soulFromHero(HERO_MAP[o.heroId].rarity, o.shards)
+    this.save.owned = this.save.owned.filter((o) => !drop.has(o.uid))
+    this.save.soul = (this.save.soul ?? 0) + gain
+    if (this.save.selectedHeroUid && drop.has(this.save.selectedHeroUid)) {
+      this.save.selectedHeroUid = this.save.owned[0]?.uid ?? null
+    }
+    this.emit(`分解 ${targets.length} 名武将，获得 ${gain} 将魂`)
   }
 
   exchangeHero(heroId: string): void {
@@ -679,8 +831,18 @@ export class Store {
     this.save.soul -= cost
     const owned = this.save.owned.find((o) => o.heroId === heroId)
     if (owned) {
-      owned.shards += 10
-      this.emit(`${def.name} 已拥有，转化为 10 碎片`)
+      // 已拥有：转为 1 级同名武将，可作为突破/觉醒材料
+      this.save.owned.push({
+        uid: newHeroUid(),
+        heroId,
+        level: 1,
+        shards: 0,
+        breakthrough: 0,
+        awaken: 0,
+        exp: 0,
+        gear: {},
+      })
+      this.emit(`${def.name} 已拥有，兑换为 1 级同名武将`)
       return
     }
     this.save.owned.push({
