@@ -1757,8 +1757,16 @@ body {
    手机横屏适配：矮视口（height ≤ 560px）
    横屏宽度富余、纵向紧张 → 改用左右分栏，而非上下堆叠
    ═══════════════════════════════════════════════════════════ */
+
+/* 禁双击缩放与长按延迟（触屏全局生效，不影响点击） */
+html, body {
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+}
+
 @media (orientation: landscape) and (max-height: 560px) {
-  /* 横屏不再强制 16:9 letterbox：吃掉黑边，把宽度全给内容 */
+  /* 横屏不再强制 16:9 letterbox：吃掉黑边，把宽度全给内容；
+     padding 留出 iOS 刘海/圆角/ home 条的安全区 */
   .shell {
     width: 100%;
     max-width: none;
@@ -1768,6 +1776,10 @@ body {
     border-radius: 0;
     border: none;
     box-shadow: none;
+    box-sizing: border-box;
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   /* 侧边 dock 保留竖列（横屏宽裕），压缩图标 */
@@ -1857,28 +1869,34 @@ body {
   .fv2-seals .seal-tip { display: none; }
   .form-v2-side > .btn { padding: 4px 8px; font-size: 0.6rem; }
 
-  /* 援军条：右栏纵向排列，卡片缩小 */
+  /* 援军条：右栏纵向排列，过滤芯片整行换行，卡片两列铺满 */
   .panel.form-v2-bench {
     padding: 5px 6px 6px;
     gap: 3px;
   }
   .panel.form-v2-bench h3 { font-size: 0.68rem; padding: 1px 8px 1px 6px; }
   .fv2-filters { gap: 2px 4px; margin-bottom: 2px; }
-  .fv2-filters .pick-chip { padding: 1px 5px; font-size: 0.56rem; }
+  .fv2-filters .pick-row { flex: 1 1 100%; gap: 2px; }
+  .fv2-filters .pick-chip { flex: 1 1 auto; text-align: center; padding: 1px 3px; font-size: 0.52rem; }
   .bench-strip {
     flex: 1 1 auto;
     min-height: 0;
     gap: 4px;
   }
-  .bench-strip .hero-card {
-    flex: 0 0 56px;
-    height: 66px;
-    min-height: 66px;
-    min-width: 56px;
+  .panel.form-v2-bench .bench-strip .hero-card {
+    flex: 0 0 calc(50% - 2px);
+    min-width: 0;
+    width: calc(50% - 2px);
+    height: 84px;
+    min-height: 84px;
   }
+  .bench-strip .hero-card .art { min-height: 26px; }
   .bench-strip .hero-card .name { font-size: 0.56rem; }
-  .bench-strip .hero-card .sub { font-size: 0.46rem; }
+  .bench-strip .hero-card .sub { font-size: 0.44rem; }
   .bench-strip .hero-card .meta { padding: 0 2px 1px; }
+  .bench-strip .hero-card .rarity-tag i { display: none; }
+  .bench-strip .hero-card .card-lv { font-size: 0.44rem; }
+  .bench-strip .hero-card .faction-chip { font-size: 0.44rem; }
 
   /* 征战顶栏：横屏一行放下 */
   .war-head { flex-wrap: nowrap; margin: 5px 10px 0; }
