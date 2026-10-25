@@ -1916,9 +1916,15 @@ html, body {
   .roster-head { margin-bottom: 3px; }
 
   /* 首页右侧：纵向空间不足，卷轴上移与快捷入口错开 */
-  .side-scrolls-right { top: 24%; }
-  .plaza-quick { bottom: 30px; }
+  .side-scrolls-right { top: 17%; }
+  .plaza-quick { bottom: 14px; flex-direction: row; }
   .quick-btn { padding: 4px 8px; }
+
+  /* 首页活动条：横屏把 8 个图标压进一行，避免被右侧卷轴裁切 */
+  .feat-bar { right: 44px; max-width: 68%; gap: 3px; }
+  .feat-ic { width: 44px; }
+  .feat-disc { width: 32px; height: 32px; }
+  .feat-ic span { font-size: 0.48rem; }
 }
 
 /* ═══════════════════════════════════════════════════════════

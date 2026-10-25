@@ -1530,23 +1530,70 @@ function battleView(): string {
           .join('')}
       </div>
     </div>
-    <div class="battle-ticker"><div class="battle-log" id="battle-feed"></div></div>
     <div id="battle-stage" class="fight-stage">
-      <div class="fight-sky"></div>
-      <div class="fight-ground"></div>
+      <div class="bf-sky"></div>
+      <div class="bf-sun"></div>
+      <div class="bf-clouds" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <svg class="bf-far" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0 84 L26 58 L48 76 L74 40 L100 74 L124 56 L150 80 L176 48 L204 78 L232 60 L256 82 L282 52 L310 78 L338 62 L366 84 L400 70 L400 120 L0 120 Z" fill="#3d4756" opacity="0.72"/>
+        <path d="M0 96 L34 74 L62 92 L96 66 L132 94 L166 74 L200 96 L236 72 L272 96 L306 76 L342 96 L374 78 L400 92 L400 120 L0 120 Z" fill="#2b3441" opacity="0.9"/>
+        <g fill="#232b36">
+          <rect x="286" y="70" width="78" height="26"/>
+          <rect x="300" y="58" width="20" height="18"/>
+          <path d="M293 70 h7 v-5 h5 v5 h7 v-5 h5 v5 h7 v-5 h5 v5 h7 v-5 h5 v5 h7 v-5 h5 v5 h7 v-5 h5 v5 h4" fill="#232b36"/>
+          <path d="M299 56 L310 47 L321 56 Z"/>
+          <rect x="336" y="46" width="18" height="26"/>
+          <path d="M330 46 L345 36 L360 46 Z"/>
+        </g>
+        <g fill="#ffcf87" opacity="0.75">
+          <rect x="306" y="64" width="4" height="5"/>
+          <rect x="342" y="52" width="3" height="4"/>
+          <rect x="350" y="60" width="3" height="4"/>
+        </g>
+        <path d="M306 58 L306 44 M345 36 L345 22" stroke="#8a6a3a" stroke-width="1"/>
+        <path d="M306 44 l10 3 l-10 3 Z" fill="#a8321f"/>
+        <path d="M345 22 l11 3 l-11 3 Z" fill="#a8321f"/>
+      </svg>
+      <div class="bf-ground"></div>
+      <svg class="bf-props" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden="true">
+        <g fill="#2b1c10" opacity="0.55">
+          <ellipse cx="52" cy="112" rx="18" ry="5"/>
+          <ellipse cx="330" cy="116" rx="22" ry="6"/>
+          <ellipse cx="200" cy="104" rx="14" ry="4"/>
+        </g>
+        <g stroke="#2b1c10" stroke-width="1.4" opacity="0.5" stroke-linecap="round">
+          <path d="M24 118 l-3 -9 M28 118 l1 -11 M32 118 l4 -8"/>
+          <path d="M360 114 l-3 -8 M364 114 l1 -10 M368 114 l4 -7"/>
+          <path d="M112 108 l-3 -8 M116 108 l1 -9"/>
+          <path d="M286 110 l-2 -7 M290 110 l2 -9 M294 110 l4 -6"/>
+        </g>
+        <g fill="#3a2716" opacity="0.6">
+          <ellipse cx="86" cy="116" rx="7" ry="4"/>
+          <ellipse cx="252" cy="118" rx="9" ry="4"/>
+          <ellipse cx="152" cy="120" rx="6" ry="3"/>
+        </g>
+      </svg>
+      <div class="bf-haze"></div>
+      <div class="bf-banners" aria-hidden="true">
+        <i class="ally"></i><i class="enemy"></i>
+      </div>
+      <div class="bf-hud">
+        <b class="bf-wave" id="bf-wave">${b.rounds ? '整军待战' : ''}</b>
+        <div class="bf-round" id="bf-round"></div>
+      </div>
       <div id="fight-field" class="fight-boards">
         <div class="camp-block enemy">
-          <b class="board-label">敌军</b>
-          <div class="board enemy" id="board-enemy">${board ? board.enemies : '<i class="cell"></i>'.repeat(6)}</div>
+          <div class="board enemy" id="board-enemy">${board ? board.enemies : ''}</div>
         </div>
         <div class="camp-block ally">
-          <b class="board-label">我军</b>
-          <div class="board ally" id="board-ally">${board ? board.allies : '<i class="cell"></i>'.repeat(6)}</div>
+          <div class="board ally" id="board-ally">${board ? board.allies : ''}</div>
         </div>
       </div>
       <div class="clash-fx" id="clash-fx"></div>
       <div class="skill-fx" id="skill-fx"></div>
+      <div class="bf-vignette"></div>
     </div>
+    <div class="battle-ticker"><div class="battle-log" id="battle-feed"></div></div>
     <div id="battle-report" class="battle-report" ${done ? '' : 'hidden'}>${report}</div>
   </section>`
 }

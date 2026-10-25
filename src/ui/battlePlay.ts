@@ -166,26 +166,87 @@ function fighterHtml(u: HpSnap, side?: 'ally' | 'enemy'): string {
   </div>`
 }
 
-/** 站位计算：前排在己方靠前（ally 靠右列，enemy 靠左列），后排靠后 */
+/**
+ * 战场站位：三列纵深 + 前后两排。
+ * 数值为「横向百分比 / 距底百分比 / 纵深缩放」，前排靠中线且更大。
+ */
+const FORMATION = {
+  ally: {
+    front: [
+      [40, 3, 1],
+      [31, 18, 0.87],
+      [22, 33, 0.74],
+    ],
+    back: [
+      [26, 8, 0.82],
+      [17, 23, 0.7],
+      [8, 38, 0.6],
+    ],
+  },
+  enemy: {
+    front: [
+      [60, 3, 1],
+      [69, 18, 0.87],
+      [78, 33, 0.74],
+    ],
+    back: [
+      [74, 8, 0.82],
+      [83, 23, 0.7],
+      [92, 38, 0.6],
+    ],
+  },
+} as const
+
 function formationStyle(u: HpSnap, side: 'ally' | 'enemy'): string {
-  const file = (u.slot % 3) + 1
+  const file = Math.min(2, u.slot % 3)
   const front = u.slot < 3
-  const col = side === 'ally' ? (front ? 2 : 1) : front ? 1 : 2
-  return `grid-column:${col};grid-row:${file}`
+  const [x, b, d] = FORMATION[side][front ? 'front' : 'back'][file]
+  // 前排压住后排：前排 file0 最靠前
+  const z = (front ? 30 : 20) - file
+  return `left:${x}%;bottom:${b}%;--d:${d};z-index:${z}`
 }
 
 function placeFormation(field: HTMLElement, units: HpSnap[], side: 'ally' | 'enemy'): void {
   units.forEach((u) => {
     const el = fighterEl(field, u.uid)
     if (!el) return
-    const file = (u.slot % 3) + 1
+    const file = Math.min(2, u.slot % 3)
     const front = u.slot < 3
-    const col = side === 'ally' ? (front ? 2 : 1) : front ? 1 : 2
-    el.style.gridColumn = String(col)
-    el.style.gridRow = String(file)
+    const [x, b, d] = FORMATION[side][front ? 'front' : 'back'][file]
+    el.style.left = `${x}%`
+    el.style.bottom = `${b}%`
+    el.style.zIndex = String((front ? 30 : 20) - file)
+    el.style.setProperty('--d', String(d))
     el.classList.toggle('front', front)
     el.classList.toggle('back', !front)
   })
+}
+
+/** 战场 HUD：回合数与波次的题头 */
+function updateHud(stage: HTMLElement, ev: BattleEvent): void {
+  const waveEl = stage.querySelector<HTMLElement>('#bf-wave')
+  const roundEl = stage.querySelector<HTMLElement>('#bf-round')
+  if (ev.kind === 'round' && roundEl) {
+    const m = ev.text.match(/第\s*(\d+)\s*回合/)
+    if (m) {
+      roundEl.textContent = `第 ${m[1]} 回合`
+      bump(roundEl)
+    }
+    return
+  }
+  if (ev.kind === 'sys' && waveEl) {
+    const m = ev.text.match(/第\s*(\d+)\s*波/)
+    if (m) {
+      waveEl.textContent = `第 ${m[1]} 波`
+      bump(waveEl)
+    }
+  }
+}
+
+function bump(el: HTMLElement): void {
+  el.classList.remove('bump')
+  void el.offsetWidth
+  el.classList.add('bump')
 }
 
 function rush(actor: HTMLElement, foe: HTMLElement | undefined, kind: 'strike' | 'step', dur: number): void {
@@ -288,6 +349,8 @@ function applyEvent(
   line.className = `line ${ev.kind}`
   line.textContent = ev.text
   logEl.prepend(line)
+
+  updateHud(stage, ev)
 
   const actor = ev.actorId ? fighterEl(field, ev.actorId) : null
   const targets = (ev.targetIds ?? []).map((id) => fighterEl(field, id)).filter((el): el is HTMLElement => !!el)
