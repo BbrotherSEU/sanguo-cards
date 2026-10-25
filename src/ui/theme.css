@@ -1696,222 +1696,211 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   手游竖屏适配：≤ 560px 改为全屏 + 底部 Tab 导航
+   竖屏旋转提示：游戏为横屏专属，竖屏时全屏遮挡
    ═══════════════════════════════════════════════════════════ */
-@media (max-width: 560px) {
-  #app {
-    display: block;
-  }
+#rotate-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(ellipse 90% 50% at 50% 0%, rgba(196, 60, 40, 0.3), transparent 60%),
+    linear-gradient(180deg, #1c110c 0%, #0c0806 60%, #100c09 100%);
+  color: #ffe082;
+  text-align: center;
+}
 
+#rotate-gate[hidden] {
+  display: none;
+}
+
+.rotate-gate-inner {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  max-width: 300px;
+}
+
+.rotate-icon {
+  width: 92px;
+  height: 92px;
+  color: #ffd54f;
+  filter: drop-shadow(0 0 16px rgba(255, 200, 100, 0.4));
+  animation: rotateHint 2.4s ease-in-out infinite;
+}
+
+@keyframes rotateHint {
+  0%, 55%, 100% { transform: rotate(0deg); }
+  75%, 92% { transform: rotate(-90deg); }
+}
+
+#rotate-gate h2 {
+  margin: 0;
+  font-family: "ZCOOL XiaoWei", serif;
+  font-size: 1.5rem;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-indent: 0.2em;
+  color: #ffeccb;
+}
+
+#rotate-gate p {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.6;
+  color: rgba(255, 236, 203, 0.72);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   手机横屏适配：矮视口（height ≤ 560px）
+   横屏宽度富余、纵向紧张 → 改用左右分栏，而非上下堆叠
+   ═══════════════════════════════════════════════════════════ */
+@media (orientation: landscape) and (max-height: 560px) {
+  /* 横屏不再强制 16:9 letterbox：吃掉黑边，把宽度全给内容 */
   .shell {
     width: 100%;
+    max-width: none;
     height: 100dvh;
     max-height: none;
     aspect-ratio: auto;
     border-radius: 0;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 48px minmax(0, 1fr) 60px;
-    grid-template-areas:
-      'status'
-      'main'
-      'dock';
     border: none;
     box-shadow: none;
   }
 
-  /* 导航移到底部，变横向 Tab */
+  /* 侧边 dock 保留竖列（横屏宽裕），压缩图标 */
   .dock {
-    grid-area: dock;
-    grid-template-rows: none;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    align-items: center;
-    padding: 4px 4px calc(4px + env(safe-area-inset-bottom, 0px));
-    border-right: none;
-    border-top: 1px solid rgba(232, 197, 106, 0.28);
-    box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.55), var(--edge-hi);
+    padding: 4px 3px;
   }
-
   .dock button {
     gap: 1px;
   }
+  .dock button span { font-size: 0.56rem; }
+  .dock button svg { width: 17px; height: 17px; }
 
-  .dock button i {
-    width: 32px;
-    height: 32px;
-    border-radius: 10px;
-  }
-
-  .dock button i .ico {
-    width: 18px;
-    height: 18px;
-  }
-
-  .dock button span {
-    font-size: 0.6rem;
-  }
-
-  .dock .dock-recruit i {
-    width: 36px;
-    height: 36px;
-  }
-
-  /* 选中指示改为顶部横条 */
-  .dock button.active::after {
-    right: auto;
-    left: 50%;
-    top: 2px;
-    width: 20px;
-    height: 3px;
-    transform: translateX(-50%);
-    border-radius: 3px;
-  }
-
-  .more-sheet {
-    left: 8px;
-    right: 8px;
-    bottom: 66px;
-    width: auto;
-  }
-
+  /* 顶栏压缩：释放纵向空间 */
   .statusbar {
-    padding: 4px 8px;
+    padding: 3px 10px;
+    gap: 6px;
   }
-
   .avatar {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
   }
+  .avatar .avatar-name { font-size: 0.66rem; }
+  .res { font-size: 0.64rem; padding: 2px 6px 2px 2px; }
+  .res i { width: 13px; height: 13px; }
 
-  .res {
-    padding: 2px 7px 2px 2px;
-    font-size: 0.66rem;
-  }
-
-  .res i {
-    width: 16px;
-    height: 16px;
-  }
-
-  .main {
-    padding: 8px 8px 10px;
-  }
-
-  /* 卡片改为 3 列 */
-  .card-grid,
-  .pick-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  /* 首页立绘缩小，避免挤压 */
-  .cast-hero.back { width: 78px; }
-  .cast-hero.front { width: 88px; }
-  .cast-hero.lead { width: 104px; }
-
-  .plaza-left {
-    top: auto;
-    bottom: 8px;
-    left: 6px;
-    flex-direction: row;
+  /* 布阵 v2：左舞台 + 右详情/援军两栏 */
+  .shell.screen-team .main {
+    grid-template-columns: minmax(0, 1fr) clamp(180px, 22vw, 232px);
+    grid-template-rows: minmax(0, 1fr);
     gap: 6px;
   }
 
-  .plaque {
-    width: 54px;
-    height: 46px;
-    padding: 4px 0;
-    flex-direction: column;
-    border-radius: 8px;
-  }
-
-  .plaque::before {
-    display: none;
-  }
-
-  .plaque span {
-    writing-mode: horizontal-tb;
-    letter-spacing: 0.08em;
-    font-size: 0.66rem;
-  }
-
-  .plaza-stage {
-    left: 6px;
-    right: 100px;
-    height: 68%;
-  }
-
-  .plaza-right {
-    right: 6px;
-    bottom: 6px;
-  }
-
-  .plaza-grid {
-    grid-template-columns: 50px 50px;
-  }
-
-  .orb i {
-    width: 42px;
-    height: 42px;
-  }
-
-  .orb .ico {
-    width: 18px;
-    height: 18px;
-  }
-
-  .orb span {
-    font-size: 0.58rem;
-  }
-
-  .war-orb {
-    width: 76px;
-    height: 76px;
-  }
-
-  .plaza-banner b {
-    font-size: 1.1rem;
-  }
-
-  /* 武将详情：单列 */
-  .hero-page.dossier {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto;
-    grid-template-areas:
-      'stage'
-      'side';
-  }
-
-  .dossier-side {
-    margin: 0;
-    border-left: none;
-    border-top: 1px solid rgba(232, 197, 106, 0.24);
-    max-height: 42dvh;
-  }
-
-  .dossier-fig {
-    left: 50%;
-    height: 88%;
-  }
-
-  /* 布阵：上下布局 */
-  .shell.screen-team .main {
-    grid-template-columns: minmax(0, 1fr);
+  .panel.form-panel-v2 {
+    grid-template-columns: minmax(0, 1fr) clamp(150px, 17vw, 176px);
     grid-template-rows: auto minmax(0, 1fr);
+    gap: 4px;
+    padding: 5px;
   }
 
-  .form-panel.form-lineup {
-    grid-template-columns: 54px minmax(0, 1fr);
-    grid-template-rows: auto;
-  }
-
-  .form-sheet {
-    display: none;
-  }
-
-  .pick-chip {
-    padding: 4px 10px;
+  .form-v2-tabs button {
+    padding: 2px 16px;
     font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-indent: 0.16em;
   }
+
+  /* 舞台：竖排 3×2 保持比例，但整体缩放以适配矮视口 */
+  .form-v2-stage {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: 0 4px;
+    padding: 2px 3px 15px;
+  }
+  .slot-v2.back { width: 72%; }
+  .slot-v2.front { width: 88%; }
+  .slot-v2-name { font-size: 0.6rem; }
+  .slot-v2.front .slot-v2-name { font-size: 0.66rem; }
+  .slot-v2-bond { font-size: 0.46rem; }
+  .slot-v2.front .slot-v2-bond { font-size: 0.48rem; }
+  .slot-v2-tag { padding: 0 3px; border-radius: 5px; }
+  .slot-v2-rank { font-size: 0.46rem; width: 12px; height: 12px; }
+  .stage-total {
+    position: static;
+    grid-column: 1 / -1;
+    grid-row: 4;
+    justify-self: start;
+    align-self: center;
+    font-size: 0.52rem;
+    padding: 1px 6px;
+  }
+
+  /* 详情栏：窄栏内纵向堆叠，装备/缘分缩紧 */
+  .form-v2-side {
+    gap: 4px;
+    padding: 5px 6px;
+    overflow-y: auto;
+  }
+  .form-v2-power { padding: 0 0 3px; border-right: 0; border-bottom: 1px dashed rgba(120, 72, 24, 0.3); }
+  .form-v2-power b { font-size: 0.9rem; }
+  .form-v2-focus { padding: 3px 0; gap: 4px; }
+  .fv2-stats { gap: 5px; font-size: 0.62rem; }
+  .fv2-gear { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .fv2-gear .gear-tile .ico { width: 14px; height: 14px; }
+  .fv2-hint { font-size: 0.6rem; padding: 3px 0; }
+  .seal-bar.fv2-seals { gap: 3px; margin-top: 0; }
+  .fv2-seals .seal { width: 24px; height: 24px; font-size: 0.56rem; }
+  .fv2-seals .seal.bond { min-width: 26px; font-size: 0.5rem; }
+  .fv2-seals .seal-tip { display: none; }
+  .form-v2-side > .btn { padding: 4px 8px; font-size: 0.6rem; }
+
+  /* 援军条：右栏纵向排列，卡片缩小 */
+  .panel.form-v2-bench {
+    padding: 5px 6px 6px;
+    gap: 3px;
+  }
+  .panel.form-v2-bench h3 { font-size: 0.68rem; padding: 1px 8px 1px 6px; }
+  .fv2-filters { gap: 2px 4px; margin-bottom: 2px; }
+  .fv2-filters .pick-chip { padding: 1px 5px; font-size: 0.56rem; }
+  .bench-strip {
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: 4px;
+  }
+  .bench-strip .hero-card {
+    flex: 0 0 56px;
+    height: 66px;
+    min-height: 66px;
+    min-width: 56px;
+  }
+  .bench-strip .hero-card .name { font-size: 0.56rem; }
+  .bench-strip .hero-card .sub { font-size: 0.46rem; }
+  .bench-strip .hero-card .meta { padding: 0 2px 1px; }
+
+  /* 征战顶栏：横屏一行放下 */
+  .war-head { flex-wrap: nowrap; margin: 5px 10px 0; }
+  .diff-picker { flex-wrap: nowrap; }
+  .speed-picker > em { display: none; }
+  .speed-picker button { min-width: 24px; padding: 1px 4px; font-size: 0.56rem; }
+  .auto-push { padding: 2px 7px; font-size: 0.6rem; }
+
+  /* 城池：横屏纵向紧张，城堡与名签整体缩小，避免上下行相压 */
+  .city-node { width: 62px; gap: 0; }
+  .city-node .castle-art { width: 42px; }
+  .city-node b { font-size: 0.56rem; padding: 0 4px; }
+  .city-node small { font-size: 0.5rem; }
+
+  /* 武将页：横屏可多列，卡片更小 */
+  .card-grid { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 6px; }
+  .roster-head { margin-bottom: 3px; }
+
+  /* 首页右侧：纵向空间不足，卷轴上移与快捷入口错开 */
+  .side-scrolls-right { top: 24%; }
+  .plaza-quick { bottom: 30px; }
+  .quick-btn { padding: 4px 8px; }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -2361,6 +2350,7 @@ body {
 }
 
 /* ── 一级纸面：外层橙金双框 + 纸纹 ─────────────────────── */
+/* 注意：.gear-pop 是浮层遮罩，不参与纸面面板样式 */
 .panel,
 .armory,
 .forge-hall,
@@ -2369,7 +2359,6 @@ body {
 .armory-detail,
 .armory-detail-side,
 .armory-modal,
-.gear-pop,
 .prep-camp,
 .battle-report {
   border: 1px solid var(--brass-3);
@@ -2711,6 +2700,7 @@ body {
    ═══════════════════════════════════════════════════════════════ */
 
 /* 一级纸面：内层再压一道金线 + 角落水墨晕染，贴近参考的双框质感 */
+/* 注意：.gear-pop 是浮层遮罩，不参与纸面面板样式 */
 .panel,
 .armory,
 .forge-hall,
@@ -2719,7 +2709,6 @@ body {
 .armory-detail,
 .armory-detail-side,
 .armory-modal,
-.gear-pop,
 .prep-camp,
 .battle-report {
   box-shadow:
@@ -2927,6 +2916,7 @@ body {
    ═══════════════════════════════════════════════════════════════ */
 
 /* 四角铜钉：叠加在纸面四角的圆形铆钉 */
+/* 注意：.gear-pop 是浮层遮罩，不参与纸面面板样式 */
 .panel,
 .armory,
 .forge-hall,
@@ -2935,7 +2925,6 @@ body {
 .armory-detail,
 .armory-detail-side,
 .armory-modal,
-.gear-pop,
 .prep-camp,
 .battle-report {
   background-image:

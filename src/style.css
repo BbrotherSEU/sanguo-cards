@@ -1384,21 +1384,30 @@ button {
   min-height: 280px;
   border-radius: 16px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
   background:
     radial-gradient(circle at 18% 12%, rgba(255, 220, 160, 0.2), transparent 18%),
     radial-gradient(circle at 78% 62%, rgba(70, 140, 90, 0.28), transparent 24%),
     linear-gradient(180deg, #16344a 0%, #1e4636 30%, #3c3420 62%, #140e0a 100%);
 }
 
+/* 城池棋盘：占满顶栏以下的区域，关卡节点按百分比定位其中 */
+.war-board {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .war-head {
-  position: absolute;
-  z-index: 2;
-  top: 12px;
-  left: 14px;
+  position: relative;
+  z-index: 3;
+  flex: 0 0 auto;
   display: flex;
   gap: 8px;
   align-items: baseline;
   color: #fff8e8;
+  margin: 10px 12px 0;
 }
 
 .war-head b {

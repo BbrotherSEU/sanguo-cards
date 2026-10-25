@@ -1279,21 +1279,23 @@ function campaignView(): string {
     return `
     <section class="war-map">
       <div class="war-head"><b>征战</b><small>${cleared}/${STAGES.length}</small>${diffPicker}${speedPicker}${autoBtn}</div>
-      <svg class="war-path" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-        <polyline points="${points}" />
-      </svg>
-      ${CHAPTERS.map((c) => {
-        const open = cleared >= (c.id - 1) * CHAPTER_SIZE
-        const done = cleared >= c.id * CHAPTER_SIZE
-        const progress = Math.max(0, Math.min(CHAPTER_SIZE, cleared - (c.id - 1) * CHAPTER_SIZE))
-        const state = !open ? 'locked' : done ? 'done' : 'now'
-        return `<button type="button" class="city-node ${state}" style="left:${c.x}%;top:${c.y}%" data-open-chapter="${c.id}" ${open ? '' : 'disabled'}>
-          ${castleSvg(state)}
-          <b>${c.city}</b>
-          <small>${open ? `${progress}/${CHAPTER_SIZE}` : ''}</small>
-        </button>`
-      }).join('')}
-      ${walkerHtml(prev, cur)}
+      <div class="war-board">
+        <svg class="war-path" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <polyline points="${points}" />
+        </svg>
+        ${CHAPTERS.map((c) => {
+          const open = cleared >= (c.id - 1) * CHAPTER_SIZE
+          const done = cleared >= c.id * CHAPTER_SIZE
+          const progress = Math.max(0, Math.min(CHAPTER_SIZE, cleared - (c.id - 1) * CHAPTER_SIZE))
+          const state = !open ? 'locked' : done ? 'done' : 'now'
+          return `<button type="button" class="city-node ${state}" style="left:${c.x}%;top:${c.y}%" data-open-chapter="${c.id}" ${open ? '' : 'disabled'}>
+            ${castleSvg(state)}
+            <b>${c.city}</b>
+            <small>${open ? `${progress}/${CHAPTER_SIZE}` : ''}</small>
+          </button>`
+        }).join('')}
+        ${walkerHtml(prev, cur)}
+      </div>
     </section>`
   }
   const chapter = CHAPTERS.find((c) => c.id === mapChapter) ?? CHAPTERS[0]

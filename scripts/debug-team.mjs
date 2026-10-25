@@ -4,7 +4,8 @@ import puppeteer from 'puppeteer-core'
 const BASE = 'http://127.0.0.1:5174'
 const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
 const USER = 'dbg' + Date.now().toString(36).slice(-5)
-const PASS = 'dbgpass123'
+// 一次性测试账号：密码随机生成，不写入仓库
+const PASS = 'p' + Math.random().toString(36).slice(2, 12)
 
 async function api(path, opts = {}) {
   const res = await fetch(`${BASE}${path}`, opts)

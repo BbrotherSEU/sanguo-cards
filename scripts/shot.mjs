@@ -9,8 +9,9 @@ import { resolve } from 'node:path'
 const BASE = 'http://127.0.0.1:5174'
 const OUT = resolve(process.argv[2] ?? '.shots')
 const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
-const USER = 'shotbot'
-const PASS = 'shotbot123'
+// 走查用的一次性账号；如需固定账号可设 SHOT_USER / SHOT_PASS
+const USER = process.env.SHOT_USER ?? 'shot' + Date.now().toString(36).slice(-5)
+const PASS = process.env.SHOT_PASS ?? 'p' + Math.random().toString(36).slice(2, 12)
 
 mkdirSync(OUT, { recursive: true })
 

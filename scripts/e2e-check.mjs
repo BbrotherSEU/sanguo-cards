@@ -9,7 +9,7 @@ import puppeteer from 'puppeteer-core'
 const BASE = 'http://127.0.0.1:5174'
 const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
 const USER = 'e2e' + Date.now().toString(36).slice(-5)
-const PASS = 'e2epass123'
+const PASS = 'p' + Math.random().toString(36).slice(2, 12)
 
 let pass = 0
 let fail = 0
@@ -185,6 +185,9 @@ if (hasDossier) {
       check(info.inDossier && !info.inStage, '弹层挂在人物页根级（覆盖整个界面，而非只遮立绘区）')
       const blur = info.backdrop.match(/blur\(([\d.]+)px\)/)
       check(!!blur && parseFloat(blur[1]) >= 4, '弹层有强虚化效果', info.backdrop)
+      // 遮罩必须半透明，人物界面才能透出来（不能被纸面样式铺满）
+      const alpha = info.bg.match(/rgba?\([^)]*?,\s*([\d.]+)\s*\)/)
+      check(!!alpha && parseFloat(alpha[1]) < 0.9, '弹层遮罩半透明（人物界面可见）', info.bg)
       check(info.figVisible, '人物立绘仍作为背景可见')
       check(info.dossierPos === 'relative', '人物页为弹层定位上下文', info.dossierPos)
       check(info.coversSide, '弹层覆盖整个人物页（含右侧属性栏）')

@@ -5,3 +5,6 @@ public/__shot.html
 node_modules/
 *.log
 scripts/node-h2-20.json
+scripts/lsc-*.png
+scripts/.calib.mjs
+scripts/.sweep.mjs
