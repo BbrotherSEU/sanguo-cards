@@ -247,7 +247,7 @@ function view(): string {
   const playing = store.screen === 'gacha' && store.gachaPhase === 'playing'
   const leadUid = s.team.find((id): id is string => !!id)
   const lead = s.owned.find((o) => o.uid === leadUid) ?? s.owned[0]
-  const face = lead ? `/sprites/${lead.heroId}.png` : ''
+  const face = lead ? `/sprites/${lead.heroId}.webp` : ''
   return `
   <div class="shell screen-${store.screen}${dockOff ? ' dock-off' : ''}">
     ${store.toast ? `<div class="toast">${escapeHtml(store.toast)}</div>` : ''}
@@ -369,7 +369,7 @@ function castFigure(slot: number, role: 'back' | 'front' | 'lead'): string {
   return `<button type="button" class="cast-hero ${role} faction-${hero.faction} rarity-${hero.rarity}" data-open="${owned.uid}" aria-label="${hero.name}">
     <i class="cast-pad" aria-hidden="true"></i>
     <em class="cast-lv"><i class="lv-arrow">${owned.level}</i><b>${hero.name}</b></em>
-    <img src="/sprites/${hero.id}.png" alt="" draggable="false" />
+    <img src="/sprites/${hero.id}.webp" alt="" draggable="false" />
   </button>`
 }
 
@@ -530,7 +530,7 @@ function gachaView(): string {
             return `<div class="faction-scroll ${faction}${on ? ' on' : ''}">
               <i class="roll"></i>
               <button type="button" class="paper" data-banner-pick="${faction}" aria-label="${FACTION_LABEL[faction]}" ${playing ? 'disabled' : ''}>
-                <img src="/sprites/${heroId}.png" alt="" draggable="false" />
+                <img src="/sprites/${heroId}.webp" alt="" draggable="false" />
                 <b class="seal">${FACTION_LABEL[faction]}</b>
               </button>
               <i class="roll"></i>
@@ -810,7 +810,7 @@ function heroDetailView(): string {
     <div class="cultivate-fx" aria-hidden="true">${fx ? `<em>${store.heroFx?.text ?? ''}</em>` : ''}</div>
     <div class="dossier-stage">
       <button type="button" class="dossier-back" data-nav="roster" aria-label="返回">${icon('back')}</button>
-      <img class="dossier-fig" src="/sprites/${h.id}.png" alt="" />
+      <img class="dossier-fig" src="/sprites/${h.id}.webp" alt="" />
       ${GEAR_SLOTS.map((slot) => gearFloat(slot)).join('')}
       <div class="dossier-foot">
         <div class="star-row" aria-label="觉醒${owned.awaken}">${stars}</div>
@@ -839,7 +839,7 @@ function heroDetailView(): string {
       <div class="dossier-head">
         <i class="role-banner"><span>${kind}</span><span>${line}</span><span>${ROLE_LABEL[h.role]}</span></i>
         <div class="mini-hero">
-          <img src="/sprites/${h.id}.png" alt="" />
+          <img src="/sprites/${h.id}.webp" alt="" />
           <b class="faction-seal faction-${h.faction}">${FACTION_LABEL[h.faction]}</b>
         </div>
       </div>
@@ -918,7 +918,7 @@ function teamView(): string {
     const bondN = bondCountByHero.get(h.id) ?? 0
     return `<div class="slot-v2 filled ${row} col-${col} rarity-${h.rarity} faction-${h.faction}${picking}" data-slot="${i}" data-clear="${uid}" role="button" aria-label="${h.name}">
       <span class="slot-v2-fig">
-        <img class="slot-v2-sprite" src="/sprites/${h.id}.png" alt="" />
+        <img class="slot-v2-sprite" src="/sprites/${h.id}.webp" alt="" />
         <span class="slot-v2-shadow"></span>
         <div class="slot-v2-tag">
           <b class="slot-v2-name">${h.name}</b>
@@ -1182,7 +1182,7 @@ function equipDetail(
       const busy = o.gear[def.slot]
       const busyDef = busy && busy !== eq.uid ? EQUIP_MAP[store.save.equips.find((e) => e.uid === busy)?.equipId ?? ''] : null
       return `<button type="button" class="wear-face${on ? ' on' : ''}" data-give="${o.uid}" data-piece="${eq.uid}" aria-label="${h.name}">
-        <img src="/sprites/${h.id}.png" alt="" />
+        <img src="/sprites/${h.id}.webp" alt="" />
         <b>${h.name}</b>
         <small>${on ? '已穿' : busyDef ? '替换' : '穿上'}</small>
       </button>`
@@ -1341,7 +1341,7 @@ function campaignView(): string {
           const tip = reason || (done ? '已通关' : current ? '当前关卡' : '未解锁')
           return `<button type="button" class="yard-hero ${st.boss ? 'boss' : ''} ${done ? 'done' : ''} ${current ? 'now' : ''} ${locked ? 'locked' : ''}" style="left:${pos.x}%;top:${pos.y}%" data-challenge="${st.id}" title="${tip}" ${locked ? 'disabled' : ''}>
             ${st.boss ? '<i class="boss-tag">BOSS</i>' : ''}
-            ${hero ? `<img src="/sprites/${hero.id}.png" alt="" draggable="false" />` : ''}
+            ${hero ? `<img src="/sprites/${hero.id}.webp" alt="" draggable="false" />` : ''}
             <b>${st.name}</b>
           </button>`
         })
@@ -1380,7 +1380,7 @@ function walkerHtml(from: { x: number; y: number }, to: { x: number; y: number }
   const owned = (leadUid ? store.save.owned.find((o) => o.uid === leadUid) : null) ?? store.save.owned[0]
   const hero = owned ? HERO_MAP[owned.heroId] : null
   const flip = to.x < from.x ? ' flip' : ''
-  const src = hero ? `/sprites/${hero.id}.png` : ''
+  const src = hero ? `/sprites/${hero.id}.webp` : ''
   return `<div class="map-walker${inside ? ' inside' : ''}${flip}" style="--from-x:${from.x}%;--from-y:${from.y}%;--to-x:${to.x}%;--to-y:${to.y}%">${src ? `<img src="${src}" alt="" draggable="false" />` : ''}</div>`
 }
 

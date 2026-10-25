@@ -108,7 +108,7 @@ button {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   color: #1a1008;
   background: linear-gradient(180deg, var(--gold), var(--gold-dim));
   border: 2px solid #6a4a18;
@@ -210,7 +210,7 @@ button {
   display: grid;
   place-items: center;
   font-style: normal;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 0.95rem;
   background: rgba(255, 255, 255, 0.04);
 }
@@ -283,7 +283,7 @@ button {
   display: grid;
   place-items: center;
   font-style: normal;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   background: rgba(232, 197, 106, 0.14);
   color: var(--gold);
 }
@@ -370,7 +370,7 @@ button {
   position: absolute;
   right: 8px;
   top: -12px;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 7.5rem;
   line-height: 1;
   color: rgba(232, 197, 106, 0.08);
@@ -385,7 +385,7 @@ button {
 
 .city-banner h2 {
   margin: 2px 0 4px;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-weight: 400;
   font-size: 2rem;
   letter-spacing: 0.14em;
@@ -506,7 +506,7 @@ button {
   display: grid;
   place-items: center;
   font-style: normal;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 1.15rem;
   color: #1a1008;
   background: linear-gradient(180deg, var(--gold), var(--gold-dim));
@@ -584,7 +584,7 @@ button {
 
 .panel h3 {
   margin: 0 0 12px;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-weight: 400;
   letter-spacing: 0.12em;
   color: var(--gold);
@@ -689,7 +689,7 @@ button {
   display: grid;
   place-items: center;
   font-size: 2rem;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   color: #fff8e8;
   background: color-mix(in srgb, var(--accent) 80%, #000);
   border: 2px solid rgba(255, 255, 255, 0.25);
@@ -920,7 +920,7 @@ button {
 }
 
 .form-power {
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   letter-spacing: 0.12em;
   color: var(--muted);
 }
@@ -1332,7 +1332,7 @@ button {
 }
 
 .roster-bar b {
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-weight: 400;
   font-size: 1.25rem;
   letter-spacing: 0.12em;
@@ -1411,7 +1411,7 @@ button {
 }
 
 .war-head b {
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 1.4rem;
   font-weight: 400;
   letter-spacing: 0.16em;
@@ -1510,7 +1510,7 @@ button {
 
 .chapter-head b {
   display: block;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-weight: 400;
   font-size: 1.35rem;
   letter-spacing: 0.14em;
@@ -1730,7 +1730,7 @@ button {
 
 .gacha-hero h2 {
   margin: 0 0 8px;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 2rem;
   color: var(--gold);
   font-weight: 400;
@@ -1768,7 +1768,7 @@ button {
   border: 1px solid rgba(232, 197, 106, 0.28);
   background: #1a120c;
   color: var(--mist);
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   letter-spacing: 0.16em;
 }
 
@@ -1874,7 +1874,7 @@ button {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 1.8rem;
   color: var(--ink);
   background: linear-gradient(180deg, var(--gold), var(--gold-dim));
@@ -2006,7 +2006,7 @@ button {
 }
 
 .back-seal {
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 2.4rem;
   color: var(--gold);
   opacity: 0.85;
@@ -2492,7 +2492,7 @@ button {
 .hd-power b {
   font-size: 1.25rem;
   color: var(--gold);
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   letter-spacing: 0.04em;
 }
 
@@ -2541,7 +2541,7 @@ button {
 
 .hd-name {
   margin: 2px 0 0;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: clamp(2rem, 4vw, 2.75rem);
   font-weight: 400;
   color: var(--gold);
@@ -2674,7 +2674,7 @@ button {
 
 .cultivate-fx em {
   font-style: normal;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 2.4rem;
   letter-spacing: 0.14em;
   opacity: 0;
@@ -2749,7 +2749,7 @@ button {
   border-radius: 8px;
   display: grid;
   place-items: center;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 1.2rem;
   color: #fff5e8;
   background: linear-gradient(160deg, var(--crimson), var(--crimson-deep));
@@ -2799,7 +2799,7 @@ button {
   margin-top: 4px;
   font-size: 1.15rem;
   color: var(--gold);
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
 }
 
 .hd-gear-row {
@@ -2849,7 +2849,7 @@ button {
 }
 
 .hd-gear-slot {
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 1.1rem;
   color: var(--gold-dim);
 }
@@ -3135,7 +3135,7 @@ button {
 
 .battle-head h3 {
   margin: 0;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   color: var(--gold);
   font-weight: 400;
   letter-spacing: 0.1em;
@@ -3792,7 +3792,7 @@ button {
 
 .vs {
   text-align: center;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 1.4rem;
   color: var(--crimson);
   letter-spacing: 0.3em;
@@ -3924,7 +3924,7 @@ button {
   transform: translate(-50%, -50%) scale(0.6);
   opacity: 0;
   pointer-events: none;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 2.2rem;
   letter-spacing: 0.18em;
   color: var(--ssr);
@@ -4334,7 +4334,7 @@ button {
 
 .hero-id h2 {
   margin: 4px 0 0;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-weight: 400;
   font-size: 1.8rem;
   letter-spacing: 0.14em;
@@ -4356,7 +4356,7 @@ button {
 }
 
 .hero-power {
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 1.35rem;
   color: var(--gold);
   letter-spacing: 0.04em;
@@ -4404,7 +4404,7 @@ button {
 .hero-stats b {
   display: block;
   margin-top: 2px;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 1.15rem;
   color: var(--gold);
 }
@@ -4631,7 +4631,7 @@ button {
 
 .arena-card b {
   color: var(--gold);
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 1.3rem;
   font-weight: 400;
 }
@@ -4999,7 +4999,7 @@ button {
   min-height: 0;
   height: 100%;
   overflow: hidden;
-  background: #8ec8ef url("/plaza/courtyard.jpg") center 42% / cover no-repeat;
+  background: #8ec8ef url("/plaza/courtyard.webp") center 42% / cover no-repeat;
 }
 
 .plaza::before {
@@ -5151,7 +5151,7 @@ button {
 
 .war-orb .ico { width: 18px; height: 18px; }
 .war-orb b {
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 1.05rem;
   font-weight: 400;
   letter-spacing: 0.14em;
@@ -5625,7 +5625,7 @@ button {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 1.45rem;
   font-weight: 400;
   letter-spacing: 0;
@@ -5657,7 +5657,7 @@ button {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 1.2rem;
   border: 2px solid #f8e7c0;
 }
@@ -5706,7 +5706,7 @@ button {
   padding-top: 6px;
 }
 .result-head b { color: #ffd54f; letter-spacing: 0.08em; }
-.result-head span { font-family: "ZCOOL XiaoWei", serif; font-size: 1.35rem; }
+.result-head span { font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif; font-size: 1.35rem; }
 .recruit-result .summon-result-grid {
   flex: 1;
   min-height: 0;
@@ -6059,7 +6059,7 @@ button {
   grid-template-columns: minmax(0, 1fr) 252px;
   grid-template-rows: minmax(0, 1fr);
   grid-template-areas: 'stage side';
-  background: #2a140c url('/hero/hall.jpg') center 42% / cover no-repeat;
+  background: #2a140c url('/hero/hall.webp') center 42% / cover no-repeat;
 }
 
 .dossier-stage {
@@ -6247,7 +6247,7 @@ button {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   letter-spacing: 0.08em;
   border: 2px solid #ffe082;
 }
@@ -6267,7 +6267,7 @@ button {
   border: 2px solid #ffe082;
   background: radial-gradient(circle at 40% 30%, #fff6d0, #e0a84a 55%, #8a5414);
   color: #4a240c;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   letter-spacing: 0.06em;
   box-shadow: 0 3px 0 #6a3810;
 }
@@ -6490,7 +6490,7 @@ button {
   background: rgba(232, 197, 106, 0.08);
 }
 .gear-pop-card header b {
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 0.95rem;
   letter-spacing: 0.12em;
   color: #ffe082;
@@ -6701,7 +6701,7 @@ button {
   box-shadow: inset 0 0 0 6px rgba(92, 48, 22, 0.35), inset 0 0 40px rgba(0, 0, 0, 0.25);
 }
 .armory-head, .equip-head { display: flex; align-items: center; gap: 8px; }
-.armory-head h3, .equip-head h3 { margin: 0; display: flex; align-items: center; gap: 6px; font-family: "ZCOOL XiaoWei", serif; letter-spacing: 0.12em; }
+.armory-head h3, .equip-head h3 { margin: 0; display: flex; align-items: center; gap: 6px; font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif; letter-spacing: 0.12em; }
 .armory-head p { margin: 0; flex: 1; font-size: 0.68rem; line-height: 1.35; color: #f0d7b0; }
 .armory-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
 .armory-tabs button {
@@ -6872,7 +6872,7 @@ button {
 .armory-modal-art b { right: 8px; color: #ffccbc; }
 
 .armory-modal-side { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-.armory-modal-side strong { font-size: 1.15rem; font-family: "ZCOOL XiaoWei", serif; letter-spacing: 0.08em; }
+.armory-modal-side strong { font-size: 1.15rem; font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif; letter-spacing: 0.08em; }
 .armory-modal-side em, .armory-modal-side span { font-style: normal; font-size: 0.78rem; color: #f6e6c8; }
 .armory-modal-side .ex { color: #ffcc80; }
 .armory-modal-side .wear-now { color: #ffe082 !important; font-size: 0.74rem; }
@@ -6905,7 +6905,7 @@ button {
   place-items: center;
   background:
     linear-gradient(180deg, rgba(20, 8, 4, 0.28), rgba(12, 6, 4, 0.55)),
-    url('/hero/hall.jpg') center 42% / cover;
+    url('/hero/hall.webp') center 42% / cover;
 }
 .login-wait { color: #ffe7b0; letter-spacing: 0.2em; }
 .login-gate {
@@ -6972,7 +6972,7 @@ button {
   background: linear-gradient(180deg, #3a2412, #1f1208);
   color: #b08a4e;
   border: 1px solid rgba(232, 197, 106, 0.35);
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 0.85rem;
   letter-spacing: 0.28em;
   text-indent: 0.28em;
@@ -7178,7 +7178,7 @@ button {
 }
 .slot-v2-name {
   display: block;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 0.95rem;
   font-weight: 700;
   color: #ff5252;
@@ -7364,7 +7364,7 @@ button {
   color: #ffeccb;
   letter-spacing: 0.18em;
   font-weight: 700;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   padding: 2px 14px 2px 10px;
   border-radius: 4px 12px 12px 4px;
 }
@@ -7570,7 +7570,7 @@ button {
   gap: 2px;
   writing-mode: vertical-rl;
   letter-spacing: 0.15em;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-weight: 700;
 }
 .side-scroll i { font-style: normal; font-size: 0.7rem; }

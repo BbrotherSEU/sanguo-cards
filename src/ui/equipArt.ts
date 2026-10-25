@@ -11,5 +11,5 @@ const SLOT_FALLBACK: Record<EquipSlot, string> = {
 
 export function equipArt(slot: EquipSlot, _rarity = 'R', dim = false, equipId?: string): string {
   const file = equipId || SLOT_FALLBACK[slot]
-  return `<img class="equip-art${dim ? ' dim' : ''}" src="/equips/${file}.jpg" alt="" />`
+  return `<img class="equip-art${dim ? ' dim' : ''}" src="/equips/${file}.webp" alt="" />`
 }

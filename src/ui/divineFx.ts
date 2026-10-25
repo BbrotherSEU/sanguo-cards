@@ -20,14 +20,14 @@ export function playDivineMerge(heroId: string, onMerge: () => void): void {
     <div class="dv-stage">
       <i class="dv-halo"></i>
       <div class="dv-pair">
-        <div class="dv-card left"><img src="/sprites/${heroId}.png" alt="" draggable="false" /><b>${h.name}</b></div>
+        <div class="dv-card left"><img src="/sprites/${heroId}.webp" alt="" draggable="false" /><b>${h.name}</b></div>
         <div class="dv-plus">＋</div>
-        <div class="dv-card right"><img src="/sprites/${heroId}.png" alt="" draggable="false" /><b>${h.name}</b></div>
+        <div class="dv-card right"><img src="/sprites/${heroId}.webp" alt="" draggable="false" /><b>${h.name}</b></div>
       </div>
       <div class="dv-burst"></div>
       <div class="dv-result">
         <div class="dv-godcard">
-          <img src="/sprites/${heroId}.png" alt="" draggable="false" />
+          <img src="/sprites/${heroId}.webp" alt="" draggable="false" />
           <b>${h.name}</b>
         </div>
         <span class="dv-seal">神</span>

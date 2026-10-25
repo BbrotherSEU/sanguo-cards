@@ -95,5 +95,5 @@ export function skillIcon(fx: string): string {
   const svg = FX_SVG[fx]
   if (svg) return `<svg class="sk-photo sk-svg" viewBox="0 0 24 24" aria-hidden="true">${svg}</svg>`
   const name = SKILL_ART.has(fx) ? fx : 'strike'
-  return `<img class="sk-photo" src="/skills/${name}.jpg" alt="" />`
+  return `<img class="sk-photo" src="/skills/${name}.webp" alt="" />`
 }

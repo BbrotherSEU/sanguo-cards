@@ -495,7 +495,7 @@ function shade(hex: string, amt: number): string {
 
 /** 卡面、名册、养成都用同一套 Q 版全身立绘 */
 export function portraitHtml(hero: HeroDef, size = 120): string {
-  const src = `/sprites/${hero.id}.png`
+  const src = `/sprites/${hero.id}.webp`
   return `<div class="portrait portrait-photo rarity-${hero.rarity}" style="width:${size}px;--accent:${hero.color};--rarity-color:${rarityStroke(hero.rarity as Rarity)}">
     <img src="${src}" alt="${hero.name}" draggable="false" onerror="this.style.display='none';this.nextElementSibling.hidden=false" />
     <div class="portrait-fallback" hidden>${portraitSvg(hero, size)}</div>

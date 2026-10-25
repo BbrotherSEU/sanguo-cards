@@ -602,7 +602,7 @@ body {
   border-radius: 4px 14px 14px 4px;
   background: linear-gradient(90deg, rgba(232, 197, 106, 0.9), rgba(232, 197, 106, 0.05));
   color: #2b1a08;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-weight: 400;
   font-size: 1.02rem;
   letter-spacing: 0.12em;
@@ -670,7 +670,7 @@ body {
   background:
     radial-gradient(ellipse 46% 34% at 50% 6%, rgba(255, 214, 150, 0.18), transparent 62%),
     linear-gradient(180deg, rgba(10, 22, 44, 0.28), transparent 26%, transparent 58%, rgba(48, 20, 8, 0.34)),
-    #7fb6e0 url("/plaza/courtyard.jpg") center 42% / cover no-repeat;
+    #7fb6e0 url("/plaza/courtyard.webp") center 42% / cover no-repeat;
 }
 
 .plaza::before {
@@ -835,7 +835,7 @@ body {
 }
 
 .plaza-banner b {
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 1.35rem;
   letter-spacing: 0.2em;
   color: var(--g-gold-1);
@@ -909,7 +909,7 @@ body {
   background:
     radial-gradient(ellipse 40% 46% at 46% 42%, rgba(255, 216, 150, 0.3), transparent 66%),
     linear-gradient(180deg, rgba(20, 8, 4, 0.34), rgba(14, 8, 4, 0.12) 40%, rgba(10, 6, 4, 0.6)),
-    #2a140c url('/hero/hall.jpg') center 42% / cover no-repeat;
+    #2a140c url('/hero/hall.webp') center 42% / cover no-repeat;
 }
 
 /* 舞台聚光 */
@@ -1738,7 +1738,7 @@ body {
 
 #rotate-gate h2 {
   margin: 0;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 1.5rem;
   font-weight: 400;
   letter-spacing: 0.2em;
@@ -2095,7 +2095,7 @@ body {
   border-radius: 4px;
   border: 1px solid #ffe082;
   background: linear-gradient(90deg, rgba(20, 10, 0, 0.7), rgba(255, 180, 40, 0.4), rgba(20, 10, 0, 0.7));
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 1.1rem;
   letter-spacing: 0.24em;
   color: #fff6d8;
@@ -2105,7 +2105,7 @@ body {
 
 .ssr-ribbon-name {
   margin-top: 8px;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 2.1rem;
   letter-spacing: 0.22em;
   color: #ffd54f;
@@ -3968,7 +3968,7 @@ body {
   display: grid;
   place-items: center;
   border-radius: 5px;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 0.82rem;
   color: #ffeccb;
   background: radial-gradient(circle at 40% 30%, #e0573e, #ab3223 55%, #781b12);
@@ -4020,7 +4020,7 @@ body {
   place-items: center;
   border-radius: 6px;
   font-style: normal;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   color: #ffeccb;
   background: radial-gradient(circle at 40% 30%, #e0573e, #ab3223 55%, #781b12);
   border: 1px solid rgba(230, 201, 136, 0.85);
@@ -4214,7 +4214,7 @@ body {
 }
 
 .dv-plus {
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 2rem;
   color: var(--brass-1);
   text-shadow: 0 0 16px rgba(230, 201, 136, 0.85);
@@ -4311,7 +4311,7 @@ body {
   place-items: center;
   margin-top: -18px;
   border-radius: 10px;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 1.5rem;
   color: #ffeccb;
   background: radial-gradient(circle at 40% 32%, #e0573e, #ab3223 55%, #781b12);
@@ -4321,7 +4321,7 @@ body {
 
 .dv-tip {
   margin: 0;
-  font-family: "ZCOOL XiaoWei", serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
   font-size: 0.86rem;
   letter-spacing: 0.42em;
   color: #ffe9ac;
